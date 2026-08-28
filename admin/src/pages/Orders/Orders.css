@@ -1,0 +1,179 @@
+.orders-page {
+  padding-bottom: 40px;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page-head h1 {
+  font-size: 1.3rem;
+  color: #212529;
+}
+
+/* ---- status filter chips ---- */
+.status-filter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 16px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 999px;
+  background: #fff;
+
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+  border-color: rgb(249, 96, 4);
+  color: rgb(231, 87, 2);
+}
+
+.filter-chip.active {
+  background: rgb(249, 96, 4);
+  border-color: rgb(249, 96, 4);
+  color: #fff;
+}
+
+.chip-count {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.72rem;
+}
+
+/* ---- order cards ---- */
+.order-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.order-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.order-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.order-id {
+  font-weight: 700;
+  color: #212529;
+}
+
+.order-date {
+  font-size: 0.8rem;
+  color: #868e96;
+}
+
+/* status dropdown tinted by current value */
+.status-select {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.status-pending    { background: #fff4e6; color: rgb(231, 87, 2); }
+.status-processing { background: #e7f5ff; color: #1971c2; }
+.status-delivered  { background: #ebfbee; color: #2b8a3e; }
+.status-cancelled  { background: #fff5f5; color: #e03131; }
+
+/* customer strip */
+.order-customer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.order-customer strong {
+  color: #212529;
+}
+
+/* items table */
+.order-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.order-items th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #868e96;
+  padding: 8px 4px;
+  border-bottom: 1.5px solid #f1f3f5;
+}
+
+.order-items td {
+  padding: 9px 4px;
+  border-bottom: 1px solid #f1f3f5;
+  color: #343a40;
+}
+
+.order-total-row td {
+  font-weight: 700;
+  padding-top: 12px;
+}
+
+.order-fee-row td {
+  color: #868e96;
+  font-size: 0.82rem;
+}
+
+.order-total-row.grand td {
+  border-bottom: none;
+  border-top: 1.5px dashed #e9ecef;
+  color: rgb(231, 87, 2);
+}
+
+.orders-loading,
+.orders-empty {
+  text-align: center;
+  color: #868e96;
+  padding: 40px 0;
+}

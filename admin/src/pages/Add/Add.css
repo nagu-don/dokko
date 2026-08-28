@@ -1,0 +1,318 @@
+/* Item container */
+
+.item-container {
+    display: flex;
+    align-items: center;
+    gap: 2vw;
+
+    width: 95%;
+    max-width: 1200px;
+
+    margin: 20px auto;
+    padding: 20px;
+
+    border-radius: 16px;
+
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    box-sizing: border-box;
+}
+
+.item-container:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+}
+
+
+/* Item image */
+
+.item-image {
+    width: 120px;
+    height: 120px;
+
+    object-fit: cover;
+
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+
+    flex-shrink: 0;
+}
+
+
+/* Right section */
+
+.item-text {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+
+/* Names */
+
+.name-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+
+.item-text h4 {
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Prices */
+
+.price {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    font-size: 0.9rem;
+}
+
+.price > div:first-child {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #868e96;
+}
+
+.price span {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-variant-numeric: tabular-nums;
+    color: #495057;
+}
+
+
+/* All buttons */
+
+.confirm-button,
+.discard-button,
+.edit-button {
+    width: 150px;
+
+    padding: 10px;
+
+    border: none;
+    border-radius: 999px;
+
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.confirm-button:hover,
+.discard-button:hover,
+.edit-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-image {
+    width: 15px;
+    border: none;
+    background-color: transparent;
+}
+
+.edit-button-image {
+    border: none;
+    border-radius: 50%;
+    padding: 4px;
+    background-color: #fff4ec;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.edit-button-image:hover,
+.edit-image:hover {
+    background-color: #ffe3cf;
+    transform: scale(1.1);
+}
+
+/* Normal Edit button */
+
+.edit-button {
+    background-color: rgb(249, 96, 4);
+    color: white;
+}
+
+.edit-button:hover {
+    background-color: rgb(231, 87, 2);
+}
+
+
+/* Editing buttons */
+
+.edit-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    margin-top: 5px;
+}
+
+
+/* Confirm */
+
+.confirm-button {
+    background-color: #2f9e44;
+    color: white;
+}
+
+.confirm-button:hover {
+    background-color: #2b8a3e;
+}
+
+
+/* Discard */
+
+.discard-button {
+    background-color: transparent;
+    color: #e03131;
+    border: 1.5px solid #e03131;
+}
+
+.discard-button:hover {
+    background-color: #e03131;
+    color: white;
+}
+
+/* Individual field + its edit icon */
+
+.field-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* Text/number editing fields */
+
+.field-input {
+    width: 180px;
+
+    padding: 6px 10px;
+
+    border: 1.5px solid rgb(249, 96, 4);
+    border-radius: 8px;
+
+    outline: none;
+
+    font-family: inherit;
+    font-size: 0.9rem;
+
+    box-sizing: border-box;
+}
+
+
+/* Image upload */
+
+.image-upload {
+    position: absolute;
+
+    top: 35px;
+    right: 0;
+
+    width: 220px;
+
+    z-index: 10;
+}
+
+
+/* Make sure image container can contain the upload control */
+
+.image-container {
+    position: relative;
+
+    width: 120px;
+    height: 120px;
+
+    flex-shrink: 0;
+}
+
+/* availability + approval row */
+
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.availability-chip {
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: default;
+}
+
+.availability-chip.yes {
+    background-color: #ebfbee;
+    color: #2b8a3e;
+    border: 1.5px solid #69db7c;
+}
+
+.availability-chip.no {
+    background-color: #fff5f5;
+    color: #e03131;
+    border: 1.5px solid #ffc9c9;
+}
+
+.approve-button {
+    align-self: flex-start;
+
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    text-align: center;
+
+    transition: background 0.2s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.approve-button:hover {
+    transform: translateY(-1px);
+}
+
+.approve-button.approved {
+    background-color: #ebfbee;
+    color: #2b8a3e;
+    border: 1.5px solid #69db7c;
+}
+
+.approve-button.not-approved {
+    background-color: #fff4e6;
+    color: rgb(231, 87, 2);
+    border: 1.5px solid #ffc078;
+}
+
+.approve-button.not-approved:hover {
+    background-color: rgb(249, 96, 4);
+    color: #fff;
+}

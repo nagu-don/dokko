@@ -1,0 +1,57 @@
+.vendor-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.vendor-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100vh - 40px);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vendor-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* wider variant used by the navigation map */
+.vendor-modal-wide {
+  max-width: 560px;
+}
+
+.vendor-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.vendor-modal-head h3 {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.modal-close {
+  border: none;
+  background: var(--surface-soft);
+  color: var(--body-text);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}

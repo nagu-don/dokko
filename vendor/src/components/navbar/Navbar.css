@@ -1,0 +1,101 @@
+.vendor-navbar {
+  position: sticky;
+  top: 10px;
+  z-index: 90;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 12px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* thematic accents per selected page */
+.vendor-navbar.theme-green {
+  --accent: var(--accent-green);
+  --accent-bg: rgba(47, 158, 68, 0.1);
+}
+
+.vendor-navbar.theme-blue {
+  --accent: var(--accent-blue);
+  --accent-bg: rgba(25, 113, 194, 0.12);
+}
+
+.vendor-navbar.theme-yellow {
+  --accent: var(--accent-yellow);
+  --accent-bg: rgba(240, 180, 0, 0.16);
+}
+
+.vendor-navbar .brand {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.vendor-navbar .brand span {
+  color: var(--accent);
+}
+
+.vendor-navbar .brand small {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vendor-navbar .links {
+  display: flex;
+  gap: 6px;
+}
+
+.vendor-navbar .links a {
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.vendor-navbar .links a:hover {
+  color: var(--text);
+}
+
+.vendor-navbar .links a.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.vendor-navbar .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.util-btn {
+  padding: 8px 16px;
+  border: 1px solid #e03131;
+  border-radius: 8px;
+  background: var(--surface);
+  color: #e03131;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.util-btn.solid {
+  background: #e03131;
+  color: #fff;
+}

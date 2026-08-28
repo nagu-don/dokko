@@ -1,0 +1,11 @@
+.hold-button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;   /* no iOS long-press callout */
+  touch-action: none;            /* hold shouldn't start a page scroll */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hold-button:active:not(:disabled) {
+  transform: scale(0.92);
+}

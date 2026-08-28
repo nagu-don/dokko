@@ -1,0 +1,53 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 0 4px;
+}
+
+.page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: none;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #dee2e6;
+  color: #495057;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.page-btn:hover:not(:disabled):not(.active) {
+  box-shadow: inset 0 0 0 1.5px rgb(249, 96, 4);
+  color: rgb(249, 96, 4);
+}
+
+.page-btn.active {
+  background: rgb(249, 96, 4);
+  box-shadow: none;
+  color: #ffffff;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.page-btn.nav {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.page-gap {
+  color: #adb5bd;
+  padding: 0 2px;
+  user-select: none;
+}

@@ -1,0 +1,65 @@
+.login-gate {
+  min-height: calc(100vh - 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-gate-card {
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.07);
+  padding: 48px 44px;
+  max-width: 420px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.login-gate-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: rgba(249, 96, 4, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-gate-icon img {
+  width: 28px;
+}
+
+.login-gate-card h1 {
+  font-size: 1.3rem;
+  color: #212529;
+  margin-bottom: 10px;
+}
+
+.login-gate-card p {
+  font-size: 0.9rem;
+  color: #868e96;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.login-gate-card button {
+  padding: 12px 40px;
+  border: none;
+  border-radius: 999px;
+
+  background: rgb(249, 96, 4);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-gate-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(249, 96, 4, 0.45);
+}

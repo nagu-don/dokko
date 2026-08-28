@@ -1,0 +1,71 @@
+.rt-wrap {
+  position: relative;
+  height: 340px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.rt-map {
+  position: absolute;
+  inset: 0;
+}
+
+.rt-map .maplibregl-ctrl-bottom-right {
+  z-index: 2;
+}
+
+/* ---- start / destination panel ---- */
+.rt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.rt-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.83rem;
+  color: var(--body-text);
+}
+
+.rt-endpoint .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rt-endpoint .dot.from {
+  background: #1971c2;
+}
+
+.rt-endpoint .dot.to {
+  background: #e8590c;
+}
+
+.rt-summary {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ---- directional arrow marker for vendor position ---- */
+.rt-arrow-marker {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease-out;
+}
+
+.rt-arrow-marker svg {
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.35));
+}

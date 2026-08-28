@@ -1,0 +1,95 @@
+.purchase-history {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 2px solid var(--border-soft);
+}
+
+.purchase-history h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.ph-loading,
+.ph-empty {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.ph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ph-card {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.ph-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.ph-header {
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.ph-date {
+  font-size: 0.85rem;
+  color: var(--body-text);
+  font-weight: 600;
+}
+
+.ph-status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: var(--warning-soft);
+  color: var(--warning-soft-text);
+}
+
+.status-processing {
+  background: var(--info-soft);
+  color: var(--info-soft-text);
+}
+
+.status-delivered {
+  background: var(--success-soft);
+  color: var(--success-soft-text);
+}
+
+.status-cancelled {
+  background: var(--danger-soft);
+  color: var(--danger-soft-text);
+}
+
+.ph-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ph-value {
+  font-size: 0.92rem;
+  color: var(--text);
+  text-align: right;
+  font-weight: 600;
+}
+
+.ph-total {
+  color: var(--brand-strong);
+}

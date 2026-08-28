@@ -1,0 +1,134 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+/* ------------------------------------------------------------------
+   Theme palette — single source of truth for every surface/text color.
+   Light is the default; `html[data-theme='dark']` (set by the Settings
+   menu via Context) flips every component.  The orange brand accent is
+   kept in both themes; in dark mode it is brightened for contrast.
+------------------------------------------------------------------- */
+:root {
+  /* surfaces */
+  --surface: #ffffff;
+  --surface-2: #faf9f8;
+  --surface-soft: #f1f3f5;
+  --surface-hover: #f8f9fa;
+  --input-bg: #ffffff;
+
+  /* text */
+  --text: #212529;
+  --body-text: #495057;
+  --muted: #868e96;
+  --placeholder: #adb5bd;
+
+  /* borders */
+  --border: #e9ecef;
+  --border-soft: #f1f3f5;
+  --border-strong: #dee2e6;
+  --input-border: #dee2e6;
+
+  /* brand — orange is the portal accent */
+  --brand: #f96004;
+  --brand-hover: #d9480f;
+  --brand-strong: rgb(231, 87, 2);   /* orange used as text on light bg */
+  --brand-soft-bg: #fff4ec;          /* very light orange tint surface */
+  --brand-tint: rgba(249, 96, 4, 0.07);
+  --brand-tint-strong: rgba(249, 96, 4, 0.15);
+  --brand-border: #ffc078;
+
+  /* feedback */
+  --danger: #e03131;
+  --danger-bg: #fff5f5;
+  --danger-soft: #f8d7da;
+  --danger-soft-text: #721c24;
+  --success: #2f9e44;
+  --success-dark: #2b8a3e;
+  --success-soft: #d4edda;
+  --success-soft-text: #155724;
+  --warning: #e67700;
+  --warning-soft: #fff3cd;
+  --warning-soft-text: #856404;
+  --info: #1971c2;
+  --info-soft: #cce5ff;
+  --info-soft-text: #004085;
+  --link: #1971c2;
+
+  /* shadows */
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.18);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] {
+  /* surfaces */
+  --surface: #1d2023;
+  --surface-2: #141618;
+  --surface-soft: #24282c;
+  --surface-hover: #2a2f34;
+  --input-bg: #24282c;
+
+  /* text */
+  --text: #e9ecef;
+  --body-text: #c1c8ce;
+  --muted: #909aa5;
+  --placeholder: #6c757d;
+
+  /* borders */
+  --border: #2c3237;
+  --border-soft: #262b30;
+  --border-strong: #3a4046;
+  --input-border: #3a4046;
+
+  /* brand — brightened orange for contrast on dark */
+  --brand: #ff8c2e;
+  --brand-hover: #ffa349;
+  --brand-strong: #ffa94d;
+  --brand-soft-bg: rgba(255, 140, 46, 0.12);
+  --brand-tint: rgba(255, 140, 46, 0.1);
+  --brand-tint-strong: rgba(255, 140, 46, 0.2);
+  --brand-border: #e8590c;
+
+  /* feedback */
+  --danger: #ff6b6b;
+  --danger-bg: rgba(224, 49, 49, 0.12);
+  --danger-soft: rgba(224, 49, 49, 0.18);
+  --danger-soft-text: #ffa8a8;
+  --success: #40c057;
+  --success-dark: #69db7c;
+  --success-soft: rgba(47, 158, 68, 0.18);
+  --success-soft-text: #8ce99a;
+  --warning: #f59f00;
+  --warning-soft: rgba(230, 119, 0, 0.2);
+  --warning-soft-text: #ffd8a8;
+  --info: #4dabf7;
+  --info-soft: rgba(25, 113, 194, 0.22);
+  --info-soft-text: #a5d8ff;
+  --link: #74c0fc;
+
+  /* shadows */
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  font-family: 'Poppins', 'Segoe UI', Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 500px at 80% -10%, rgba(249, 96, 4, 0.07), transparent 60%),
+    var(--surface-2);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  width: 90%;
+  max-width: 1280px;
+  margin: auto;
+  padding-top: 10px;
+}

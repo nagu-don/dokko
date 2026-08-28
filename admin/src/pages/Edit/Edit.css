@@ -1,0 +1,204 @@
+/* Item container */
+
+.item-container {
+    display: flex;
+    align-items: center;
+    gap: 2vw;
+
+    width: 95%;
+    max-width: 1200px;
+
+    margin: 20px auto;
+    padding: 20px;
+
+    border-radius: 12px;
+
+    background-color: rgba(0, 163, 163, 0.623);
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+    box-sizing: border-box;
+}
+
+
+/* Item image */
+
+.item-image {
+    width: 120px;
+    height: 120px;
+
+    object-fit: cover;
+
+    border-radius: 10px;
+    border: 1px solid #ccc;
+
+    flex-shrink: 0;
+}
+
+
+/* Right section */
+
+.item-text {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+
+/* Names */
+
+.name-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+
+/* Prices */
+
+.price {
+    display: flex;
+    flex-direction: column;
+
+    gap: 5px;
+
+    font-size: 0.9rem;
+}
+
+
+/* All buttons */
+
+.confirm-button,
+.discard-button,
+.edit-button {
+    width: 150px;
+
+    padding: 10px;
+
+    border: none;
+    border-radius: 5px;
+
+    font-size: 0.8rem;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.edit-image{
+    width:15px;
+    border:none;
+    background-color: #ddf74c;
+}
+.edit-button-image{
+    border:1px solid black;
+    border-radius: 25%;
+    padding:1px;
+    background-color: #ddf74c;
+    cursor: pointer;
+}
+.edit-button-image:hover, .edit-image:hover{
+    background-color: #bdd61b;
+}
+
+/* Normal Edit button */
+
+.edit-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.edit-button:hover {
+    background-color: #0069d9;
+}
+
+
+/* Editing buttons */
+
+.edit-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    margin-top: 5px;
+}
+
+
+/* Confirm */
+
+.confirm-button {
+    background-color: #28a745;
+    color: white;
+}
+
+.confirm-button:hover {
+    background-color: #218838;
+}
+
+
+/* Discard */
+
+.discard-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+.discard-button:hover {
+    background-color: #c82333;
+}
+/* Individual field + its edit icon */
+
+.field-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* Text/number editing fields */
+
+.field-input {
+    width: 180px;
+
+    padding: 5px 8px;
+
+    border: 1px solid #555;
+    border-radius: 4px;
+
+    font-size: 0.9rem;
+
+    box-sizing: border-box;
+}
+
+
+/* Image upload */
+
+.image-upload {
+    position: absolute;
+
+    top: 35px;
+    right: 0;
+
+    width: 220px;
+
+    z-index: 10;
+}
+
+
+/* Make sure image container can contain the upload control */
+
+.image-container {
+    position: relative;
+
+    width: 120px;
+    height: 120px;
+
+    flex-shrink: 0;
+}

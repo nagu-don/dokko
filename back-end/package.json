@@ -1,0 +1,31 @@
+{
+  "name": "back-end",
+  "version": "1.0.0",
+  "description": "back-end",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "server": "nodemon server.js",
+    "test": "node --env-file-if-exists=.env test/runAll.js",
+    "test:priority": "node --env-file-if-exists=.env test/priority.test.js",
+    "test:qr": "node --env-file-if-exists=.env test/emvcoQr.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.19.0",
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.3.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jose": "^6.2.10",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.8.1",
+    "multer": "^2.2.0",
+    "node-cron": "^4.6.0",
+    "nodemon": "^3.1.14",
+    "qrcode": "^1.5.4"
+  }
+}

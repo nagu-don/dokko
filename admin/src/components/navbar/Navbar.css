@@ -1,0 +1,113 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 14px 22px;
+  margin-bottom: 24px;
+
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+
+  border-radius: 14px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.navbar a {
+  text-decoration: none;
+  color: #495057;
+}
+
+.navbar a p {
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.navbar a:hover {
+  color: rgb(249, 96, 4);
+}
+
+.navbar a.active {
+  color: rgb(231, 87, 2);
+}
+
+.navbar a.active p {
+  border-color: rgb(249, 96, 4);
+}
+
+/* ---- auth button ---- */
+.navbar-login,
+.navbar-logout {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.navbar-login {
+  background: rgb(249, 96, 4);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(249, 96, 4, 0.35);
+}
+
+.navbar-login:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 14px rgba(249, 96, 4, 0.45);
+}
+
+.navbar-logout {
+  background: transparent;
+  color: #495057;
+  border: 1.5px solid #dee2e6;
+}
+
+.navbar-logout:hover {
+  border-color: #e03131;
+  color: #e03131;
+}
+
+/* ---- right side ---- */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-lang-toggle {
+  padding: 7px 14px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navbar-lang-toggle:hover {
+  border-color: rgb(249, 96, 4);
+  color: rgb(249, 96, 4);
+}
