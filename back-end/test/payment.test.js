@@ -71,15 +71,6 @@ const api = async (method, path, body, token) => {
   return { status: res.status, data: await res.json() };
 };
 
-// ── Mock fetch to avoid real provider API calls ───────────────
-const originalFetch = globalThis.fetch;
-let mockFetchHandler = null;
-
-globalThis.fetch = async (...args) => {
-  if (mockFetchHandler) return mockFetchHandler(...args);
-  return originalFetch(...args);
-};
-
 // ── Setup ─────────────────────────────────────────────────────
 await mongoose.connect(MONGO_URI);
 console.log("Connected to", mongoose.connection.name);
@@ -95,13 +86,12 @@ await db.collection("users").deleteMany({ email: { $regex: `^${testPrefix}` } })
 await db.collection("orders").deleteMany({ vendor: { $exists: true }, user: { $exists: true } });
 await db.collection("payments").deleteMany({ merchantReference: { $regex: `^DKO-` } });
 
-// Load gateway with test config
+// Load gateway with test config — mock is the clean dev provider.
 loadGateway({
-  PAYMENT_PROVIDER: "nepalpay",
+  PAYMENT_PROVIDER: "mock",
   COMPANY_BANK_ACCOUNT: "000000000000",
-  NEPALPAY_MERCHANT_ID: "TEST_MERCHANT",
-  NEPALPAY_SECRET_KEY: "test-secret-key",
-  NEPALPAY_ENVIRONMENT: "sandbox",
+  MOCK_PAYMENT_ENABLED: "true",
+  NODE_ENV: "test",
 });
 
 // Create test vendor
@@ -149,40 +139,26 @@ const testOrder = await orderModel.create({
 const orderCode = "#" + String(testOrder._id).slice(-6).toUpperCase();
 const expectedAmount = 340 + 50 + 15; // 405
 
-// Mock fetch for provider API calls
-mockFetchHandler = async (url, options) => {
-  const u = String(url);
-  if (u.includes("nepalpay")) {
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ statusCode: "0" }),
-      text: async () => "",
-    };
-  }
-  return originalFetch(url, options);
-};
-
 // ──────────────────────────────────────────────────────────────
 // 1. Payment creation — valid initiation
 // ──────────────────────────────────────────────────────────────
 console.log("\n1. Payment creation — valid initiation");
 
 const initiate = await api("POST", `/api/vendors/payments/initiate/${testOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 
 assert(initiate.status === 200, "Initiate returns 200");
 assert(initiate.data.success === true, "Initiate returns success");
 assert(initiate.data.data.paymentId !== undefined, "Response includes paymentId");
-assert(initiate.data.data.provider === "nepalpay", "Provider is nepalpay");
+assert(initiate.data.data.provider === "mock", "Provider is mock");
 assert(initiate.data.data.amount === expectedAmount, `Amount is ${expectedAmount} (computed server-side)`);
 assert(initiate.data.data.reference !== undefined, "Response includes reference");
 
 // verify payment record was created in DB
 const paymentInDb = await paymentModel.findById(initiate.data.data.paymentId);
 assert(paymentInDb !== null, "Payment record created in DB");
-assert(paymentInDb.provider === "nepalpay", "Payment provider is nepalpay");
+assert(paymentInDb.provider === "mock", "Payment provider is mock");
 assert(paymentInDb.amountExpected === expectedAmount, "Payment amountExpected matches");
 assert(paymentInDb.status === "awaiting_payment", "Payment status is awaiting_payment");
 assert(paymentInDb.vendorId.toString() === testVendor._id.toString(), "Payment vendorId matches");
@@ -193,7 +169,7 @@ assert(paymentInDb.expiresAt instanceof Date, "Payment has expiresAt");
 // verify order payment status was updated
 const orderAfter = await orderModel.findById(testOrder._id);
 assert(orderAfter.paymentStatus === "pending", "Order paymentStatus updated to pending");
-assert(orderAfter.paymentMethod === "nepalpay", "Order paymentMethod set to nepalpay");
+assert(orderAfter.paymentMethod === "mock", "Order paymentMethod set to mock");
 
 // ──────────────────────────────────────────────────────────────
 // 2. Correct amount calculation
@@ -224,7 +200,7 @@ const order2 = await orderModel.create({
 });
 
 const initiate2 = await api("POST", `/api/vendors/payments/initiate/${order2._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 
 assert(initiate2.status === 200, "Second order initiate returns 200");
@@ -263,7 +239,7 @@ console.log("\n4. Invalid order");
 
 const fakeOrderId = new mongoose.Types.ObjectId();
 const noOrder = await api("POST", `/api/vendors/payments/initiate/${fakeOrderId}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 assert(noOrder.status === 404, "Non-existent order returns 404");
 
@@ -277,7 +253,7 @@ const otherVendor = await vendorModel.create({
 const otherVendorToken = jwt.sign({ id: otherVendor._id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
 const wrongVendor = await api("POST", `/api/vendors/payments/initiate/${testOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, otherVendorToken);
 assert(wrongVendor.status === 403, "Wrong vendor returns 403");
 
@@ -296,7 +272,7 @@ const pendingOrder = await orderModel.create({
 });
 
 const wrongState = await api("POST", `/api/vendors/payments/initiate/${pendingOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 assert(wrongState.status === 409, "Pending order returns 409");
 
@@ -306,13 +282,13 @@ assert(wrongState.status === 409, "Pending order returns 409");
 console.log("\n5. Unauthorised vendor");
 
 const noAuth = await api("POST", `/api/vendors/payments/initiate/${testOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 });
 assert(noAuth.status === 401 || noAuth.status === 403, "No token returns 401/403");
 
 const fakeToken = jwt.sign({ id: new mongoose.Types.ObjectId() }, "wrong-secret");
 const badAuth = await api("POST", `/api/vendors/payments/initiate/${testOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, fakeToken);
 assert(badAuth.status === 401 || badAuth.status === 403, "Bad token returns 401/403");
 
@@ -336,13 +312,13 @@ const order5 = await orderModel.create({
 
 // first initiation
 const first = await api("POST", `/api/vendors/payments/initiate/${order5._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 assert(first.status === 200, "First initiation succeeds");
 
 // second initiation — should return the existing payment
 const second = await api("POST", `/api/vendors/payments/initiate/${order5._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 assert(second.status === 200, "Second initiation returns 200 (not error)");
 assert(second.data.message.includes("already"), "Message indicates already in progress");
@@ -375,7 +351,7 @@ const expiredPayment = await paymentModel.create({
   orderId: expiredOrder._id,
   customerId: testCustomer._id,
   vendorId: testVendor._id,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: `DKO-EXPIRED-${Date.now()}`,
   amountExpected: 665,
   status: "awaiting_payment",
@@ -393,18 +369,32 @@ await expiredPayment.save();
 
 // Now initiate — should create a new payment since the old one is expired
 const afterExpiry = await api("POST", `/api/vendors/payments/initiate/${expiredOrder._id}`, {
-  provider: "nepalpay",
+  provider: "mock",
 }, vendorToken);
 assert(afterExpiry.status === 200, "New payment created after previous expired");
 assert(afterExpiry.data.data.paymentId !== expiredPayment._id.toString(),
   "New payment has different ID from expired one");
 
 // ──────────────────────────────────────────────────────────────
-// 8. Gateway not ready (provider returns error)
+// 8. Gateway not ready (fonepay config is pending)
 // ──────────────────────────────────────────────────────────────
-console.log("\n8. Provider error handling");
+console.log("\n8. Provider not-ready handling (fonepay)");
 
-// Temporarily make the mock throw for a specific order
+// Loading the gateway with fonepay is a VALID selection, but Fonepay's
+// configuration is PENDING (no official credentials yet), so it is NEVER
+// ready. It must fail safely and must NOT silently fall back to mock.
+const gatewayMod = await import("../gateway/index.js");
+
+gatewayMod.loadGateway({
+  PAYMENT_PROVIDER: "fonepay",
+  COMPANY_BANK_ACCOUNT: "000000000000",
+  NODE_ENV: "test",
+});
+const notReadyStatus = gatewayMod.getGatewayStatus();
+assert(notReadyStatus.activeProvider === "fonepay", "Fonepay is active provider (not nepalpay)");
+assert(notReadyStatus.isReady === false, "Fonepay is NOT ready (configuration pending, no fallback)");
+
+// The controller must reject fonepay initiation with 503 when not configured.
 const errorOrder = await orderModel.create({
   user: testCustomer._id,
   items: [{ nameEng: "Garlic", nameNep: "लसुन", quantity: 1, priceAtOrder: 150 }],
@@ -418,31 +408,25 @@ const errorOrder = await orderModel.create({
   acceptedAt: new Date(),
 });
 
-const savedHandler = mockFetchHandler;
-mockFetchHandler = async (url, options) => {
-  const u = String(url);
-  if (u.includes("nepalpay")) {
-    return {
-      ok: false,
-      status: 500,
-      json: async () => ({ error: "Internal Server Error" }),
-      text: async () => "Internal Server Error",
-    };
-  }
-  return originalFetch(url, options);
-};
-
-const providerError = await api("POST", `/api/vendors/payments/initiate/${errorOrder._id}`, {
-  provider: "nepalpay",
+const providerNotReady = await api("POST", `/api/vendors/payments/initiate/${errorOrder._id}`, {
+  provider: "fonepay",
 }, vendorToken);
-assert(providerError.status === 502, "Provider API failure returns 502");
-assert(providerError.data.success === false, "Provider error returns success=false");
+assert(providerNotReady.status === 503, "Fonepay when not configured returns 503");
+assert(providerNotReady.data.success === false, "Provider not-ready returns success=false");
 
-// verify order was reset
+// Restore the mock gateway for the remaining tests.
+gatewayMod.loadGateway({
+  PAYMENT_PROVIDER: "mock",
+  COMPANY_BANK_ACCOUNT: "000000000000",
+  MOCK_PAYMENT_ENABLED: "true",
+  NODE_ENV: "test",
+});
+
+// verify order was NOT marked paid and no payment record was created
 const errorOrderAfter = await orderModel.findById(errorOrder._id);
-assert(errorOrderAfter.paymentStatus === "unpaid", "Order paymentStatus reset to unpaid after provider error");
-
-mockFetchHandler = savedHandler;
+assert(errorOrderAfter.paymentStatus === "unpaid", "Order paymentStatus is unpaid (not paid)");
+const errorOrderPayments = await paymentModel.countDocuments({ orderId: errorOrder._id });
+assert(errorOrderPayments === 0, "No payment record created for failed fonepay initiation");
 
 // ──────────────────────────────────────────────────────────────
 // 9. Payment status check
@@ -485,8 +469,6 @@ console.log(`\n${"=".repeat(50)}`);
 console.log(`Results: ${passed} passed, ${failed} failed, ${passed + failed} total`);
 console.log(`${"=".repeat(50)}`);
 
-mockFetchHandler = null;
-globalThis.fetch = originalFetch;
 server.close();
 await mongoose.disconnect();
 process.exit(failed > 0 ? 1 : 0);

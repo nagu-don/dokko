@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-const PAYMENT_PROVIDERS = ["nepalpay", "mock", "cash"];
+const PAYMENT_PROVIDERS = ["mock", "cash", "fonepay"];
 const PAYMENT_STATUSES = [
   "created",
   "qr_generated",
@@ -28,6 +28,8 @@ const paymentSchema = new mongoose.Schema({
     providerTransactionId: {type: String, default: undefined, trim: true},
     // our unique reference per request
     merchantReference: {type: String, required: true, trim: true},
+    // opaque provider-generated QR string (stored verbatim; never reconstructed)
+    qrString: {type: String, default: null},
 
     // ── amounts — server-determined, never trusted from client ──
     amountExpected: {type: Number, required: true, min: 0},
@@ -36,6 +38,14 @@ const paymentSchema = new mongoose.Schema({
 
     // ── status ─────────────────────────────────────────────────
     status: {type: String, enum: PAYMENT_STATUSES, default: "created"},
+    // ── duplicate-active protection ─────────────────────────────
+    // Holds "active" ONLY while this attempt is in the active set
+    // (created / qr_generated / awaiting_payment). Set to null the
+    // moment the attempt leaves the active set. Paired with the
+    // partial unique index on (orderId, activeAttempt) so at most
+    // ONE active payment can exist per order — even when two
+    // identical initiate requests arrive at nearly the same time.
+    activeAttempt: {type: String, default: null},
 
     // ── provider-specific metadata ─────────────────────────────
     // QR reference for provider
@@ -64,6 +74,12 @@ const paymentSchema = new mongoose.Schema({
 paymentSchema.index(
     {orderId: 1, provider: 1, status: 1},
     {unique: true, partialFilterExpression: {status: "payment_verified"}}
+);
+
+// at most ONE active payment per order — even under concurrent initiate
+paymentSchema.index(
+    {orderId: 1, activeAttempt: 1},
+    {unique: true, partialFilterExpression: {activeAttempt: "active"}}
 );
 
 // prevent duplicate gateway transaction IDs

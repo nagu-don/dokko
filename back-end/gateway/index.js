@@ -11,12 +11,21 @@
  *   const provider = getProvider();
  *   await provider.createPayment({ ... });
  *
- * SECURITY:
+*  SECURITY:
  *   - Provider secrets live only in config objects, never exported.
  *   - The provider instance is created server-side; the frontend
  *     receives only redirect URLs or QR payloads — never secrets.
  *   - Never trust payment success from the client; always call
  *     verifyPayment() on the server.
+ *
+ *  CONTRACT:
+ *   - The payment core consumes only the generic ProviderResult fields
+ *     (provider, flow, merchantReference, providerReference,
+ *     providerTransactionId, amountExpected, amountReceived, status,
+ *     expiresAt, metadata). Provider-specific extras always live in
+ *     `metadata` — see normaliseProviderResult().
+ *   - Providers return payment results; they never modify orders,
+ *     settlements, or customer records.
  */
 
 import { loadProviders, createActiveProvider, isActiveProviderReady } from "./config.js";
@@ -61,7 +70,7 @@ export function getProvider() {
 }
 
 /**
- * Get a provider instance by name (e.g. "nepalpay" or "mock").
+ * Get a provider instance by name (e.g. "mock" or "fonepay").
  * Each named instance is cached after first creation.
  *
  * @param {string} name — provider key
@@ -129,4 +138,4 @@ export {
   isActiveProviderReady,
 } from "./config.js";
 
-export { default as PaymentProvider } from "./providerBase.js";
+export { default as PaymentProvider, normaliseProviderResult } from "./providerBase.js";

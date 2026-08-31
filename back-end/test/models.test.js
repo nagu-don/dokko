@@ -90,12 +90,15 @@ assert(paymentSchemaHas("amountExpected"), "payment.amountExpected field exists"
 assert(paymentSchemaHas("amountReceived"), "payment.amountReceived field exists");
 assert(paymentSchemaHas("currency"), "payment.currency field exists");
 assert(paymentSchemaHas("status"), "payment.status field exists");
+assert(paymentSchemaHas("qrString"), "payment.qrString field exists (opaque provider QR output)");
 assert(paymentSchemaHas("qrReference"), "payment.qrReference field exists");
 assert(paymentSchemaHas("providerPayload"), "payment.providerPayload field exists");
 assert(paymentSchemaHas("expiresAt"), "payment.expiresAt field exists");
 assert(paymentSchemaHas("paidAt"), "payment.paidAt field exists");
 assert(paymentSchemaHas("verifiedAt"), "payment.verifiedAt field exists");
 assert(paymentSchemaHas("failureReason"), "payment.failureReason field exists");
+assert(!paymentSchemaHas("validationTraceId"), "NCHL-specific validationTraceId is absent");
+assert(!paymentSchemaHas("nchlResponseCode"), "NCHL-specific field is absent");
 
 assert(settlementSchemaHas("orderId"), "settlement.orderId field exists");
 assert(settlementSchemaHas("vendorId"), "settlement.vendorId field exists");
@@ -135,17 +138,17 @@ assert(PAYMENT_STATUSES.includes("pending"), "PAYMENT_STATUSES has pending");
 assert(PAYMENT_STATUSES.includes("paid"), "PAYMENT_STATUSES has paid");
 assert(PAYMENT_STATUSES.includes("failed"), "PAYMENT_STATUSES has failed");
 assert(PAYMENT_STATUSES.includes("refunded"), "PAYMENT_STATUSES has refunded");
-assert(PAYMENT_STATUSES.length === 5, "PAYMENT_STATUSES has exactly 5 values");
+assert(PAYMENT_STATUSES.length === 6, "PAYMENT_STATUSES has exactly 6 values");
 
-assert(PAYMENT_METHODS.includes("nepalpay"), "PAYMENT_METHODS has nepalpay");
 assert(PAYMENT_METHODS.includes("mock"), "PAYMENT_METHODS has mock");
 assert(PAYMENT_METHODS.includes("cash"), "PAYMENT_METHODS has cash");
 assert(PAYMENT_METHODS.includes("cod"), "PAYMENT_METHODS has cod");
+assert(PAYMENT_METHODS.includes("fonepay"), "PAYMENT_METHODS has fonepay");
 assert(PAYMENT_METHODS.length === 4, "PAYMENT_METHODS has exactly 4 values");
 
-assert(PAYMENT_PROVIDERS.includes("nepalpay"), "PAYMENT_PROVIDERS has nepalpay");
 assert(PAYMENT_PROVIDERS.includes("mock"), "PAYMENT_PROVIDERS has mock");
 assert(PAYMENT_PROVIDERS.includes("cash"), "PAYMENT_PROVIDERS has cash");
+assert(PAYMENT_PROVIDERS.includes("fonepay"), "PAYMENT_PROVIDERS has fonepay");
 assert(PAYMENT_PROVIDERS.length === 3, "PAYMENT_PROVIDERS has exactly 3 values");
 
 assert(SETTLEMENT_STATUSES.includes("pending"), "SETTLEMENT_STATUSES has pending");
@@ -192,7 +195,7 @@ const testPayment = new paymentModel({
   orderId: testOrderId,
   customerId: testUserId,
   vendorId: testVendorId,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: "txn-test-001",
   amountExpected: 225,
   status: "created",
@@ -298,7 +301,7 @@ assert(badProviderErr !== null, "Payment with invalid provider fails validation"
 const badStatusPayment = new paymentModel({
   orderId: testOrderId,
   customerId: testUserId,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: "test-ref-2",
   amountExpected: 100,
   status: "INVALID_STATUS"
@@ -355,7 +358,7 @@ console.log("\n5. Default values");
 const defaultPayment = new paymentModel({
   orderId: testOrderId,
   customerId: testUserId,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: "test-default-ref",
   amountExpected: 100
 });
@@ -520,7 +523,7 @@ assert(orderIndexNames.some(n => n.includes("paymentStatus")), "Orders has payme
 const uniquePayment1 = new paymentModel({
   orderId: new mongoose.Types.ObjectId(),
   customerId: testUserId,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: `${testPrefix}-unique-ref`,
   amountExpected: 100,
   status: "created"
@@ -533,7 +536,7 @@ try {
   const uniquePayment2 = new paymentModel({
     orderId: new mongoose.Types.ObjectId(),
     customerId: testUserId,
-    provider: "nepalpay",
+    provider: "mock",
     merchantReference: `${testPrefix}-unique-ref`,
     amountExpected: 200,
     status: "created"
@@ -548,7 +551,7 @@ assert(dupeCaught, "Duplicate merchantReference rejected");
 const verifyPayment1 = new paymentModel({
   orderId: testOrderId,
   customerId: testUserId,
-  provider: "nepalpay",
+  provider: "mock",
   merchantReference: `${testPrefix}-verify-ref-1`,
   amountExpected: 225,
   amountReceived: 225,
@@ -562,7 +565,7 @@ try {
   const verifyPayment2 = new paymentModel({
     orderId: testOrderId,
     customerId: testUserId,
-    provider: "nepalpay",
+    provider: "mock",
     merchantReference: `${testPrefix}-verify-ref-2`,
     amountExpected: 225,
     amountReceived: 225,
@@ -580,7 +583,7 @@ try {
   const dupePending1 = new paymentModel({
     orderId: testOrderId,
     customerId: testUserId,
-    provider: "nepalpay",
+    provider: "mock",
     merchantReference: `${testPrefix}-pending-ref-1`,
     amountExpected: 225,
     status: "created"
@@ -590,7 +593,7 @@ try {
   const dupePending2 = new paymentModel({
     orderId: testOrderId,
     customerId: testUserId,
-    provider: "nepalpay",
+    provider: "mock",
     merchantReference: `${testPrefix}-pending-ref-2`,
     amountExpected: 225,
     status: "created"

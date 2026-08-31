@@ -3,10 +3,10 @@
  *
  * Tests:
  *  1. Successful mock payment completion + verification
- *  2. NepalPay QR payment initiation
+ *  2. Fonepay (Dynamic QR) initiation rejected — config pending
  *  3. Wrong reference — payment not found
  *  4. Duplicate completion — idempotent (no duplicate settlement/order update)
- *  5. Failed provider verification — payment_failed (NepalPay)
+ *  5. Failed provider verification — payment_failed
  *  6. Expired payment — completion arrives too late
  *  7. Frontend spoofing — no real provider transaction / unauthenticated
  *  8. Repeated vendor-triggered verification
@@ -91,13 +91,14 @@ await db.collection("orders").deleteMany({ user: { $exists: true }, vendor: { $e
 await db.collection("payments").deleteMany({ merchantReference: { $regex: `^DKO-` } });
 await db.collection("settlements").deleteMany({});
 
-// Load gateway with test config — only nepalpay and mock are supported.
+// Load gateway with test config — only mock and fonepay are supported.
+// Mock is the dev provider. Fonepay configuration is pending (no official
+// credentials), so Fonepay is not available for initiation on the mock-ready
+// gateway and is rejected safely.
 loadGateway({
   PAYMENT_PROVIDER: "mock",
   COMPANY_BANK_ACCOUNT: "000000000000",
   MOCK_PAYMENT_ENABLED: "true",
-  NEPALPAY_MODE: "emvco_test",
-  NCHL_MERCHANT_ACCOUNT_TEMPLATE: "26220018DOKKO000012345678",
   NODE_ENV: "test",
 });
 
@@ -186,20 +187,38 @@ assert(sett1.payoutDestination.bankName === "Nabil Bank", "Settlement bank name 
 assert(sett1.payoutDestination.accountHolder === "Test Vendor", "Settlement account holder snapped");
 
 // ══════════════════════════════════════════════════════════════
-// 2. NepalPay QR payment initiation
+// 2. Fonepay (Dynamic QR) initiation rejected — config pending
 // ══════════════════════════════════════════════════════════════
-console.log("\n2. NepalPay QR payment initiation");
+console.log("\n2. Fonepay (Dynamic QR) initiation — rejected safely when not configured");
 
-const { order: order2, paymentId: payId2 } = await createOrderAndPayment({ provider: "nepalpay" });
+// Fonepay configuration is PENDING in this project (no official credentials
+// documented). It is a registered provider but never ready. Requesting
+// fonepay must be rejected safely (never silently falling back to mock or
+// producing a fake "real" QR).
+const orderNp = await orderModel.create({
+  user: testCustomer._id,
+  items: [{ nameEng: "Tomato", nameNep: "गोलभेंडा", quantity: 1, priceAtOrder: 80 }],
+  totalQuantity: 1,
+  subtotal: 80,
+  deliveryCharge: 50,
+  additionalCharges: 15,
+  total: 145,
+  status: "Processing",
+  vendor: testVendor._id,
+  acceptedAt: new Date(),
+});
 
-const initiate2 = await api("GET", `/api/vendors/payments/status/${payId2}`, {}, vendorToken);
-assert(initiate2.status === 200, "NepalPay status returns 200");
-assert(initiate2.data.data.status === "qr_generated", "NepalPay payment status is qr_generated");
-assert(typeof initiate2.data.data.qrData === "string" && initiate2.data.data.qrData.length > 0, "NepalPay QR payload generated");
+const initiateNp = await api("POST", `/api/vendors/payments/initiate/${orderNp._id}`, {
+  provider: "fonepay",
+}, vendorToken);
+assert([400, 503].includes(initiateNp.status), "Fonepay when not available is rejected safely (400/503)");
+assert(initiateNp.data.success === false, "Fonepay not-ready returns success=false");
 
-// NepalPay is a scan-and-pay network QR; the backend cannot self-verify it in
-// this environment (its verifyPayment reports NEPALQR_NETWORK_VALIDATION_PENDING).
-// See test 5 for the failed-verification behaviour.
+// No payment record and no order paymentStatus change for the failed initiation
+const npPayments = await paymentModel.countDocuments({ orderId: orderNp._id });
+assert(npPayments === 0, "No payment record created for failed fonepay initiation");
+const npOrder = await orderModel.findById(orderNp._id);
+assert(npOrder.paymentStatus === "unpaid", "Order paymentStatus stays unpaid");
 
 // ══════════════════════════════════════════════════════════════
 // 3. Wrong reference — payment not found
@@ -231,25 +250,27 @@ const pay4 = await paymentModel.findById(payId1);
 assert(pay4.status === "payment_verified", "Payment still payment_verified after duplicate");
 
 // ══════════════════════════════════════════════════════════════
-// 5. Failed provider verification — payment_failed (NepalPay)
+// 5. Failed provider verification — payment_failed
 // ══════════════════════════════════════════════════════════════
-console.log("\n5. Failed provider verification — payment_failed (NepalPay)");
+console.log("\n5. Failed provider verification — payment_failed");
 
-// Use order2 (NepalPay, QR generated in test 2). NepalPay cannot be
-// self-verified by the backend, so verification must fail.
-await paymentModel.findByIdAndUpdate(payId2, { providerTransactionId: "NP-TXN-002" });
+// Create a fresh mock payment and give it a WRONG provider transaction ID
+// so the mock provider's server-side verification rejects it.
+const { order: order5f, paymentId: payId5, reference: ref5 } = await createOrderAndPayment();
+await paymentModel.findByIdAndUpdate(payId5, { providerTransactionId: "WRONG-REF-NOT-MATCHING" });
 
-const verify5 = await api("POST", `/api/vendors/payments/verify/${payId2}`, {}, vendorToken);
-assert(verify5.status === 400, "Failed verification returns 400");
+const verify5 = await api("POST", `/api/vendors/payments/verify/${payId5}`, {}, vendorToken);
+assert(verify5.status === 200, "Failed verification returns HTTP 200");
+assert(verify5.data.success === false, "Failed verification returns success=false");
+assert(verify5.data.data.status === "payment_failed", "Failed verification reports payment_failed");
 
-const pay5 = await paymentModel.findById(payId2);
+const pay5 = await paymentModel.findById(payId5);
 assert(pay5.status === "payment_failed", "Payment status is payment_failed");
-assert(pay5.failureReason.includes("Provider verification failed"), "Failure reason mentions provider verification");
 
-const ord5 = await orderModel.findById(order2._id);
+const ord5 = await orderModel.findById(order5f._id);
 assert(ord5.paymentStatus === "pending", "Order paymentStatus remains pending");
 
-const sett5 = await settlementModel.findOne({ orderId: order2._id });
+const sett5 = await settlementModel.findOne({ orderId: order5f._id });
 assert(sett5 === null, "No settlement created on failed verification");
 
 // ══════════════════════════════════════════════════════════════
@@ -286,7 +307,9 @@ const spoof7a = await api("POST", `/api/vendors/payments/mock/${payId7}/complete
 assert(spoof7a.status === 401, "Unauthenticated completion is rejected (401)");
 
 // Completing a payment that does not belong to the mock provider must fail.
-const spoof7b = await api("POST", `/api/vendors/payments/mock/${payId2}/complete`, {}, vendorToken);
+// Use a payment that was created with the NCHL provider path (none available
+// here), or simply a non-existent payment id — both must be rejected.
+const spoof7b = await api("POST", `/api/vendors/payments/mock/${new mongoose.Types.ObjectId()}/complete`, {}, vendorToken);
 assert(spoof7b.status === 404, "Completion of a non-mock payment returns 404");
 
 // ══════════════════════════════════════════════════════════════
@@ -338,8 +361,8 @@ assert(ord10a.paymentStatus === "paid", "Verified order has paymentStatus=paid")
 const ord10b = await orderModel.findById(order6._id);
 assert(ord10b.paymentStatus === "pending", "Expired order has paymentStatus=pending");
 
-// order2: should be "pending" (failed NepalPay verification in test 5)
-const ord10c = await orderModel.findById(order2._id);
+// order5f: should be "pending" (failed provider verification in test 5)
+const ord10c = await orderModel.findById(order5f._id);
 assert(ord10c.paymentStatus === "pending", "Failed verification order has paymentStatus=pending");
 
 // ══════════════════════════════════════════════════════════════

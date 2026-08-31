@@ -2,3 +2,8 @@
 .env
 .env.*
 !.env.example
+
+# digital certificates and private keys
+*.pfx
+*.p12
+*.pem

@@ -3,7 +3,6 @@ import { appendCrc, crc16CcittFalse, encodeTemplate, encodeTlv, parseTlv, valida
 import { generateUnifiedQr } from "../gateway/unifiedQr.js";
 import NepalpayProvider from "../gateway/nepalpayProvider.js";
 import MockProvider from "../gateway/mockProvider.js";
-
 let passed = 0;
 async function test(name, fn) { await fn(); passed += 1; console.log(`✓ ${name}`); }
 function fails(fn, part) { assert.throws(fn, (error) => error instanceof QrValidationError && error.message.includes(part)); }
@@ -24,7 +23,7 @@ await test("HTML entity is rejected", () => fails(() => encodeTlv("59", "DOKKO&#
 await test("incorrect root ordering is rejected", () => { const fields = parseTlv(result.qrPayload).filter(({ id }) => id !== "63"); const moved = [...fields.filter(({ id }) => id !== "54"), fields.find(({ id }) => id === "54")].map(({ id, value }) => encodeTlv(id, value)).join(""); fails(() => validateEmvcoQr(appendCrc(moved)), "out of order"); });
 await test("missing mandatory field is rejected", () => { const missing = parseTlv(result.qrPayload).filter(({ id }) => !["54", "63"].includes(id)).map(({ id, value }) => encodeTlv(id, value)).join(""); fails(() => validateEmvcoQr(appendCrc(missing)), "mandatory field missing"); });
 await test("NepalQR validation remains explicitly pending", () => assert.equal(validateNepalQr(result.qrPayload).status, "NEPALQR_NETWORK_VALIDATION_PENDING"));
-await test("missing official merchant configuration is rejected", () => assert.throws(() => new NepalpayProvider({ mode: "real" }).validateConfig(), /configuration is incomplete/));
+await test("missing official merchant configuration is rejected", () => assert.throws(() => new NepalpayProvider({ apiBaseUrl: "", apiUsername: "", apiPassword: "", acquirerId: "", merchantId: "", userId: "", pfxPath: "" }).validateConfig(), /configuration is incomplete/));
 await test("references distinguish two DOKKO payment records", async () => assert.notEqual(result.qrPayload, (await build("DKO-B-456")).qrPayload));
 await test("development mock verifies only its server-derived transaction reference", async () => { const mock = new MockProvider({ enabled: true }); const payment = { merchantReference: "MOCK-REF", amountExpected: 10, providerTransactionId: "MOCK-MOCK-REF" }; assert.equal((await mock.verifyPayment(payment)).verified, true); });
 await test("production rejects mock provider", () => { const prior = process.env.NODE_ENV; process.env.NODE_ENV = "production"; assert.throws(() => new MockProvider({ enabled: true }).validateConfig(), /only when NODE_ENV/); if (prior === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = prior; });

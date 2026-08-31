@@ -9,23 +9,32 @@
  * Environment variables
  * ──────────────────────
  * Payment provider selection:
- *   PAYMENT_PROVIDER        — "nepalpay" | "mock" | "cash" (which provider is active)
+ *   PAYMENT_PROVIDER        — "mock" | "fonepay" (which provider is active)
  *   COMPANY_BANK_ACCOUNT    — company bank account (internal use only)
  *
- * NepalPay (EMVCo QR):
- *   NEPALPAY_MODE           — "real" | "emvco_test"
- *   NCHL_MERCHANT_ACCOUNT_TEMPLATE — acquiring-bank/NCHL merchant TLV template
- *   NCHL_MERCHANT_NAME      — merchant display name (optional, default: DOKKO)
- *   NCHL_MERCHANT_CITY      — merchant city (optional, default: Kathmandu)
+ * Mock (development/test only):
+ *   MOCK_PAYMENT_ENABLED    — "true" enables the mock provider
+ *
+ * Fonepay (Dynamic QR): CONFIGURATION PENDING. Official Fonepay
+ * credentials/API parameters are not documented in this project yet, so no
+ * FONEPAY_* variables exist. Fonepay can be SELECTED (PAYMENT_PROVIDER) but
+ * is never ready — initiation fails safely and NEVER silently falls back to
+ * another provider. FONEPAY_* variables will be added once the official
+ * documentation is supplied.
+ *
+ * NCHL/NEPALPAY is no longer part of the active payment architecture. The
+ * legacy integration files (gateway/nchlApi.js, gateway/nepalpayProvider.js)
+ * remain in the repo as a reference and are intentionally NOT wired into this
+ * configuration.
  */
 
-import NepalpayProvider from "./nepalpayProvider.js";
 import MockProvider from "./mockProvider.js";
+import FonepayProvider from "./fonepayProvider.js";
 
 // ── Provider registry ──────────────────────────────────────────
 const PROVIDER_MAP = {
-  nepalpay: NepalpayProvider,
   mock: MockProvider,
+  fonepay: FonepayProvider,
 };
 
 // ── Allowed values ─────────────────────────────────────────────
@@ -54,65 +63,63 @@ function optionalEnv(name, fallback) {
   return value;
 }
 
-function loadNepalpayConfig() {
-  const mode = optionalEnv("NEPALPAY_MODE", "real").toLowerCase();
-  const merchantAccountTemplate = requireEnv("NCHL_MERCHANT_ACCOUNT_TEMPLATE");
-  return Object.freeze({ provider: "nepalpay", mode, merchantAccountTemplate, merchantName: optionalEnv("NCHL_MERCHANT_NAME", "DOKKO"), merchantCity: optionalEnv("NCHL_MERCHANT_CITY", "Kathmandu") });
-}
-
 function loadMockConfig() {
   if (optionalEnv("MOCK_PAYMENT_ENABLED", "false") !== "true") throw new Error("Missing required environment variable: MOCK_PAYMENT_ENABLED");
   return Object.freeze({ provider: "mock", enabled: process.env.NODE_ENV !== "production" });
 }
 
+/**
+ * Fonepay (Dynamic QR) — configuration boundary is deliberately minimal and
+ * PENDING. Official Fonepay credentials/API parameters are not documented in
+ * this project, so NO FONEPAY_* environment variables are created here.
+ *
+ * The loader returns a frozen config marked `pendingConfiguration: true`,
+ * which loadProviders() interprets as "registered but never ready" — the
+ * provider is present in the registry, is never instantiated/validated, and
+ * is never silently replaced by another provider. Once the official Fonepay
+ * documentation is supplied, this loader will be implemented to read the
+ * real FONEPAY_* variables.
+ */
+function loadFonepayConfig() {
+  return Object.freeze({
+    provider: "fonepay",
+    pendingConfiguration: true,
+  });
+}
+
 // ── Config loaders keyed by provider name ──────────────────────
 const CONFIG_LOADERS = {
-  nepalpay: loadNepalpayConfig,
   mock: loadMockConfig,
+  fonepay: loadFonepayConfig,
 };
-
-/**
- * Load configuration for a single provider.
- * Returns { name, config, ProviderClass } or null when the provider
- * is not selected by PAYMENT_PROVIDER.
- *
- * @param {string} providerName — "nepalpay" | "mock"
- * @returns {{ name: string, config: Object, ProviderClass: Function } | null}
- */
-function loadProviderConfig(providerName) {
-  const loader = CONFIG_LOADERS[providerName];
-  if (!loader) {
-    throw new Error(
-      `Unknown payment provider "${providerName}". Supported: ${Object.keys(PROVIDER_MAP).join(", ")}`
-    );
-  }
-  const config = loader();
-  return { name: providerName, config, ProviderClass: PROVIDER_MAP[providerName] };
-}
 
 /**
  * Load all provider configurations and return a normalised result.
  *
  * Returns:
  *   {
- *     activeProvider: "nepalpay" | "mock",
+ *     activeProvider: "mock" | "fonepay",
  *     providers: {
- *       nepalpay: { config, ProviderClass, isConfigured },
  *       mock:     { config, ProviderClass, isConfigured },
+ *       fonepay:  { config, ProviderClass, isConfigured },
  *     },
  *     companyBankAccount: "XXXXXXXXXXXX",
  *   }
  *
- * When PAYMENT_PROVIDER is not set, activeProvider defaults to "nepalpay".
+ * When PAYMENT_PROVIDER is not set, activeProvider defaults to "mock".
  * When provider-specific env vars are missing, that provider is marked
  * as not configured but still present in the map (for future use).
+ *
+ * A registered provider whose config is marked `pendingConfiguration`
+ * (Fonepay until its official credentials are documented) is kept in the
+ * map but is NEVER configured — this is a deliberate non-fallback: the
+ * ACTIVE provider remains exactly what PAYMENT_PROVIDER requested, so a
+ * not-ready selected provider fails safely.
  *
  * @param {Object} [envOverride] — optional env override for testing
  * @returns {Object}
  */
 export function loadProviders(envOverride) {
-  const env = envOverride || process.env;
-
   // save and restore original process.env for the duration of this call
   // when an override is provided (testing convenience)
   const originalEnv = process.env;
@@ -121,7 +128,7 @@ export function loadProviders(envOverride) {
   }
 
   try {
-    const activeProvider = optionalEnv("PAYMENT_PROVIDER", "nepalpay");
+    const activeProvider = optionalEnv("PAYMENT_PROVIDER", "mock");
 
     if (!PROVIDER_MAP[activeProvider]) {
       throw new Error(
@@ -139,10 +146,20 @@ export function loadProviders(envOverride) {
 
       try {
         config = CONFIG_LOADERS[name]();
-        // instantiate and validate
-        const instance = new ProviderClass(config);
-        instance.validateConfig();
-        isConfigured = true;
+
+        // A provider awaiting official configuration (Fonepay) is REGISTERED
+        // but never ready. It is the opposite of a fallback: the active
+        // provider stays exactly what PAYMENT_PROVIDER requested, so a
+        // not-ready selected provider fails safely.
+        if (!config || config.pendingConfiguration === true) {
+          config = null;
+          isConfigured = false;
+        } else {
+          // instantiate and validate
+          const instance = new ProviderClass(config);
+          instance.validateConfig();
+          isConfigured = true;
+        }
       } catch (err) {
         // Missing env vars mean "provider not configured" — that's fine.
         // Invalid values are real errors that must propagate.

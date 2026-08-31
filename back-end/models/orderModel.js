@@ -7,7 +7,7 @@ export const ADDITIONAL_CHARGES = 15;
 
 const ORDER_STATUSES = ["Pending", "Processing", "Delivered", "Cancelled"];
 const PAYMENT_STATUSES = ["unpaid", "pending", "paid", "failed", "refunded", "completed"];
-const PAYMENT_METHODS = ["nepalpay", "mock", "cash", "cod"];
+const PAYMENT_METHODS = ["mock", "cash", "cod", "fonepay"];
 
 // progressive search stages — order starts at SEARCHING_0_5KM and
 // advances through stages until a vendor accepts or it reaches SEARCHING_CLOSEST
@@ -80,6 +80,9 @@ const orderSchema = new mongoose.Schema({
     // null = no digital payment method (legacy / cash on delivery)
     paymentMethod: {type: String, enum: [...PAYMENT_METHODS, null], default: null}
 }, {timestamps: true});
+
+// orders are filtered by paymentStatus during payment and settlement flows
+orderSchema.index({ paymentStatus: 1 });
 
 const orderModel = mongoose.models.order || mongoose.model("order", orderSchema);
 

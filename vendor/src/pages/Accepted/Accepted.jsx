@@ -381,7 +381,7 @@ const Accepted = ({ url, onLogout }) => {
 
               {payment.data.flow === 'mock' && (
                 <div className='payment-cash-result'>
-                  <p className='payment-hint'>Development mock payment — not a bank or NepalQR transaction.</p>
+                  <p className='payment-hint'>Development mock payment — not a real bank transaction.</p>
                   <button className='cash-payment-btn' onClick={simulateMockPayment}>Simulate successful payment</button>
                 </div>
               )}

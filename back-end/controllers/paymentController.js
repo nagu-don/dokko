@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import mongoose from "mongoose";
+import QRCode from "qrcode";
 import orderModel from "../models/orderModel.js";
 import paymentModel from "../models/paymentModel.js";
 import settlementModel from "../models/settlementModel.js";
@@ -25,27 +26,233 @@ const computeAmount = (order) => {
   return Math.round((goods + delivery + charges) * 100) / 100;
 };
 
+// ── payment TTL (matches the audited 15-minute window) ─────────
+const PAYMENT_TTL_MS = 15 * 60 * 1000;
+
+// ── states that still count as "active" for duplicate protection ──
+const ACTIVE_STATUSES = ["created", "qr_generated", "awaiting_payment"];
+
+/**
+ * Lazy-expiry (Phase 8A audit §J / §P-5 — BLOCKING).
+ *
+ * Deterministically flips an active payment to `payment_expired` once
+ * `expiresAt` has passed, so read paths report a stable EXPIRED instead of
+ * relying on the MongoDB TTL sweep timing (which can lag ~60 s). Returns
+ * true when the payment was actually expired by this call.
+ *
+ * @param {Object|null} payment – payment doc (mutable)
+ * @returns {Promise<boolean>}
+ */
+const lazyExpirePayment = async (payment) => {
+  if (!payment || !ACTIVE_STATUSES.includes(payment.status)) return false;
+  if (!payment.expiresAt || payment.expiresAt >= new Date()) return false;
+
+  payment.status = "payment_expired";
+  payment.failureReason = "Payment expired before it was completed";
+  payment.activeAttempt = null;
+  await payment.save();
+  return true;
+};
+
+/**
+ * Shared digital-payment initiation core used by BOTH flows:
+ *   - vendor:  POST /api/vendors/payments/initiate/:orderId (authVendor)
+ *   - customer: POST /api/orders/:orderId/payment           (authUser)
+ *
+ * Authorization/ownership is enforced by the calling ROUTE wrapper — this
+ * function assumes the caller already verified the actor may act on the
+ * order. Safety properties (all server-side):
+ *   - The amount is ALWAYS recomputed via computeAmount(); nothing from the
+ *     request body is trusted as an amount.
+ *   - An existing non-expired active payment is returned, never duplicated.
+ *   - `activeAttempt: "active"` plus the partial unique index on
+ *     (orderId, activeAttempt) makes two identical concurrent requests
+ *     coalesce into exactly ONE payment record (Phase 8A audit §K/§P-6).
+ *   - Initiation is refused when money is already recorded for the order
+ *     (paid/completed) or when a gateway `payment_received` exists but is
+ *     not yet verified — preventing duplicate or double charges.
+ *
+ * @param {Object}  opts
+ * @param {Object}  opts.order                  – order doc (user populated)
+ * @param {string}  opts.vendorId               – assigned vendor for payment.vendorId
+ * @param {string}  [opts.requestedProvider]    – key into gateway availableProviders
+ * @returns {Promise<{httpStatus:number, message:string, data?:Object}>}
+ */
+const createDigitalPayment = async ({ order, vendorId, requestedProvider }) => {
+  // ── 1. order in correct state? ──────────────────────────────
+  if (order.status !== "Processing") {
+    return { httpStatus: 409, message: "Only accepted orders can be completed" };
+  }
+
+  // ── 1b. delivery charge finalized? ──────────────────────────
+  // deliveryCharge is null while the priority search is in progress.
+  // Payment must not proceed until a vendor has accepted.
+  if (order.deliveryCharge == null) {
+    return {
+      httpStatus: 409,
+      message: "Delivery charge not yet finalized — waiting for vendor assignment",
+    };
+  }
+
+  // ── 2. money already recorded for this order? ───────────────
+  // paid (digital) / completed (cash) — never start another request
+  // on top of captured money (audit §D / §P-7 double-collect guard).
+  if (order.paymentStatus === "paid" || order.paymentStatus === "completed") {
+    return { httpStatus: 409, message: "Payment already recorded for this order" };
+  }
+
+  const existingVerified = await paymentModel.findOne({
+    orderId: order._id,
+    status: "payment_verified",
+  });
+  if (existingVerified) {
+    return { httpStatus: 409, message: "Payment already verified for this order" };
+  }
+
+  // ── 2b. gateway received money but verification is pending ──
+  // payment_received is retryable by verification ONLY — starting a second
+  // payment on top of it could double-charge the customer.
+  const received = await paymentModel.findOne({
+    orderId: order._id,
+    status: "payment_received",
+  });
+  if (received) {
+    return {
+      httpStatus: 409,
+      message: "Payment already received — awaiting confirmation",
+    };
+  }
+
+  // ── 3. active payment already in progress? ──────────────────
+  const activePayment = await paymentModel.findOne({
+    orderId: order._id,
+    status: { $in: ACTIVE_STATUSES },
+  });
+  if (activePayment) {
+    if (!(await lazyExpirePayment(activePayment))) {
+      // return the existing payment — no duplicate creation
+      return {
+        httpStatus: 200,
+        message: "Payment already in progress",
+        data: await formatPaymentResponse(activePayment),
+      };
+    }
+  }
+
+  // ── 4. select provider ──────────────────────────────────────
+  const gatewayStatus = getGatewayStatus();
+
+  if (!gatewayStatus.isReady) {
+    return { httpStatus: 503, message: "Payment gateway is not configured" };
+  }
+
+  const providerName = requestedProvider || gatewayStatus.activeProvider;
+
+  if (!gatewayStatus.availableProviders.includes(providerName)) {
+    return { httpStatus: 400, message: `Payment provider "${providerName}" is not available` };
+  }
+
+  // ── 5. calculate authoritative amount ───────────────────────
+  const amount = computeAmount(order);
+
+  // ── 6. create payment record ────────────────────────────────
+  const merchantRef = makeMerchantRef(order._id);
+  const expiresAt = new Date(Date.now() + PAYMENT_TTL_MS);
+
+  let payment;
+  try {
+    payment = await paymentModel.create({
+      orderId: order._id,
+      customerId: order.user._id,
+      vendorId,
+      provider: providerName,
+      merchantReference: merchantRef,
+      amountExpected: amount,
+      status: "created",
+      expiresAt,
+      activeAttempt: "active",
+    });
+  } catch (createErr) {
+    // Concurrent identical requests: the other request won the insert. The
+    // winner's record has activeAttempt="active", so returning it keeps the
+    // whole flow idempotent — never two live provider requests per order.
+    if (createErr?.code === 11000 && /activeAttempt/.test(createErr?.message ?? "")) {
+      const winner = await paymentModel.findOne({ orderId: order._id, activeAttempt: "active" });
+      if (winner) {
+        return {
+          httpStatus: 200,
+          message: "Payment already in progress",
+          data: await formatPaymentResponse(winner),
+        };
+      }
+    }
+    throw createErr;
+  }
+
+  // ── 7. update order payment status ──────────────────────────
+  order.paymentStatus = "pending";
+  order.paymentMethod = providerName;
+  await order.save();
+
+  // ── 8. call provider to generate QR / redirect ──────────────
+  const provider = getProviderByName(providerName);
+
+  let providerResult;
+  try {
+    providerResult = await provider.createPayment({
+      order: { _id: order._id, total: amount },
+      customer: { _id: order.user._id, name: order.user.name },
+      amount,
+      merchantRef,
+    });
+  } catch (providerErr) {
+    // provider call failed — reset payment and order
+    payment.status = "payment_failed";
+    payment.failureReason = providerErr.message;
+    payment.activeAttempt = null;
+    await payment.save();
+
+    order.paymentStatus = "unpaid";
+    order.paymentMethod = null;
+    await order.save();
+
+    return { httpStatus: 502, message: "Payment provider error. Please try again." };
+  }
+
+  // ── 9. persist provider output and update status ────────────
+  // We persist only generic provider information. QR content, when the
+  // provider supplies it, is treated as opaque provider OUTPUT — it is
+  // stored verbatim, never reconstructed, and never treated as proof of
+  // payment. Providers may surface vendor-specific extras via metadata.
+  payment.qrReference = providerResult.qrReference || null;
+
+  const qrOutput = providerResult.qrString ?? providerResult.metadata?.qrString ?? null;
+  if (qrOutput) {
+    payment.qrString = qrOutput;
+  }
+
+  // A provider that advertises a QR flow produces a scannable QR;
+  // anything else is redirected or mock and waits for the customer.
+  payment.status = providerResult.flow === "qr" ? "qr_generated" : "awaiting_payment";
+  await payment.save();
+
+  // ── 10. return to frontend ──────────────────────────────────
+  return {
+    httpStatus: 200,
+    message: "Payment initiated",
+    data: await formatPaymentResponse(payment, providerResult),
+  };
+};
+
 /**
  * POST /api/vendors/payments/initiate/:orderId
  *
  * Vendor initiates a digital payment for an accepted order.
- *
- * Steps:
- *   1. Verify vendor auth (done by middleware)
- *   2. Verify order exists
- *   3. Verify order belongs to this vendor
- *   4. Verify order is in "Processing" state
- *   5. Calculate authoritative amount
- *   6. Check for duplicate (already has active payment)
- *   7. Create Payment record
- *   8. Generate provider payment request (QR / redirect)
- *   9. Return payment data to frontend
+ * Ownership is enforced HERE (order.vendor === req.account._id); the shared
+ * initiation core handles amount authority + duplicate-active safety.
  */
 export const initiatePayment = async (req, res) => {
   try {
-    // ── 1. vendor auth is handled by authVendor middleware ─────
-
-    // ── 2. order exists? ───────────────────────────────────────
     const order = await orderModel
       .findById(req.params.orderId)
       .populate("user", "name email phone");
@@ -54,7 +261,6 @@ export const initiatePayment = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // ── 3. order belongs to this vendor? ───────────────────────
     if (String(order.vendor) !== String(req.account._id)) {
       return res.status(403).json({
         success: false,
@@ -62,155 +268,16 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // ── 4. order in correct state? ─────────────────────────────
-    if (order.status !== "Processing") {
-      return res.status(409).json({
-        success: false,
-        message: "Only accepted orders can be completed",
-      });
-    }
-
-    // ── 4b. delivery charge finalized? ─────────────────────────
-    // deliveryCharge is null while the priority search is in
-    // progress.  Payment must not proceed until a vendor has
-    // accepted and the charge is known.
-    if (order.deliveryCharge == null) {
-      return res.status(409).json({
-        success: false,
-        message: "Delivery charge not yet finalized — waiting for vendor assignment",
-      });
-    }
-
-    // ── 5. payment already verified for this order? ────────────
-    const existingVerified = await paymentModel.findOne({
-      orderId: order._id,
-      status: "payment_verified",
-    });
-    if (existingVerified) {
-      return res.status(409).json({
-        success: false,
-        message: "Payment already verified for this order",
-      });
-    }
-
-    // ── 6. active payment already in progress? ─────────────────
-    const activePayment = await paymentModel.findOne({
-      orderId: order._id,
-      status: { $in: ["created", "qr_generated", "awaiting_payment"] },
-    });
-    if (activePayment) {
-      // return the existing payment — no duplicate creation
-      return res.json({
-        success: true,
-        message: "Payment already in progress",
-        data: formatPaymentResponse(activePayment),
-      });
-    }
-
-    // ── 7. select provider ─────────────────────────────────────
-    const { provider: requestedProvider } = req.body;
-    const gatewayStatus = getGatewayStatus();
-
-    if (!gatewayStatus.isReady) {
-      if ((requestedProvider || gatewayStatus.activeProvider) === "nepalpay") {
-        return res.status(503).json({ success: false, message: "NEPALPAY/NCHL payment configuration is incomplete. An acquiring-bank/NCHL merchant configuration is required." });
-      }
-      return res.status(503).json({
-        success: false,
-        message: "Payment gateway is not configured",
-      });
-    }
-
-    const providerName = requestedProvider || gatewayStatus.activeProvider;
-
-    if (!gatewayStatus.availableProviders.includes(providerName)) {
-      return res.status(400).json({
-        success: false,
-        message: `Payment provider "${providerName}" is not available`,
-      });
-    }
-
-    // ── 8. calculate authoritative amount ──────────────────────
-    const amount = computeAmount(order);
-
-    // ── 8b. check for pending cash handling fees ───────────────
-    // If vendor has unpaid cash handling fees, track them for settlement deduction
-    const pendingCashFees = await paymentModel.aggregate([
-      {
-        $match: {
-          vendorId: req.account._id,
-          provider: "cash",
-          cashFeeDeducted: false,
-          cashHandlingFee: { $gt: 0 },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalCashFees: { $sum: "$cashHandlingFee" },
-        },
-      },
-    ]);
-
-    const totalPendingCashFees = pendingCashFees[0]?.totalCashFees || 0;
-
-    // ── 9. create payment record ───────────────────────────────
-    const merchantRef = makeMerchantRef(order._id);
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-    const payment = await paymentModel.create({
-      orderId: order._id,
-      customerId: order.user._id,
-      vendorId: req.account._id,
-      provider: providerName,
-      merchantReference: merchantRef,
-      amountExpected: amount,
-      status: "created",
-      expiresAt,
+    const result = await createDigitalPayment({
+      order,
+      vendorId: order.vendor,
+      requestedProvider: req.body?.provider,
     });
 
-    // ── 10. update order payment status ────────────────────────
-    order.paymentStatus = "pending";
-    order.paymentMethod = providerName;
-    await order.save();
-
-    // ── 11. call provider to generate QR / redirect ────────────
-    const provider = getProviderByName(providerName);
-
-    let providerResult;
-    try {
-      providerResult = await provider.createPayment({
-        order: { _id: order._id, total: amount },
-        customer: { _id: order.user._id, name: order.user.name },
-        amount,
-        merchantRef,
-      });
-    } catch (providerErr) {
-      // provider call failed — reset payment and order
-      payment.status = "payment_failed";
-      payment.failureReason = providerErr.message;
-      await payment.save();
-
-      order.paymentStatus = "unpaid";
-      order.paymentMethod = null;
-      await order.save();
-
-      return res.status(502).json({
-        success: false,
-        message: "Payment provider error. Please try again.",
-      });
-    }
-
-    // ── 12. update payment status ──────────────────────────────
-    payment.status = providerResult.qrData ? "qr_generated" : "awaiting_payment";
-    payment.qrReference = providerResult.qrReference || null;
-    await payment.save();
-
-    // ── 13. return to frontend ─────────────────────────────────
-    res.json({
-      success: true,
-      message: "Payment initiated",
-      data: formatPaymentResponse(payment, providerResult),
+    return res.status(result.httpStatus).json({
+      success: result.httpStatus < 400,
+      message: result.message,
+      ...(result.data ? { data: result.data } : {}),
     });
   } catch (error) {
     console.error(error);
@@ -218,9 +285,125 @@ export const initiatePayment = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/orders/:orderId/payment
+ *
+ * Customer initiates a digital payment for their OWN order (authUser).
+ * Same server-authoritative core as the vendor route — the customer can never
+ * control the amount, the provider payload, or the expiry window.
+ */
+export const initiateCustomerPayment = async (req, res) => {
+  try {
+    const order = await orderModel
+      .findById(req.params.orderId)
+      .populate("user", "name email phone");
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (String(order.user._id) !== String(req.account._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only pay for your own orders",
+      });
+    }
+
+    const result = await createDigitalPayment({
+      order,
+      vendorId: order.vendor,
+      requestedProvider: req.body?.provider,
+    });
+
+    return res.status(result.httpStatus).json({
+      success: result.httpStatus < 400,
+      message: result.message,
+      ...(result.data ? { data: result.data } : {}),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to initiate payment" });
+  }
+};
+
+/**
+ * GET /api/orders/:orderId/payment
+ *
+ * Customer payment state for their OWN order (authUser). Returns:
+ *   - order summary (status / paymentStatus / paymentMethod)
+ *   - `paymentRequired` + `canInitiate` + the authoritative amount
+ *   - available providers (no secrets / config)
+ *   - the relevant payment attempt (active, or most recent otherwise) —
+ *     lazily expired so the client gets a deterministic `payment_expired`.
+ *
+ * This endpoint CANNOT mark an order paid — that only happens through the
+ * server-side verification path. Nothing here ever trusts a client amount.
+ */
+export const getOrderPayment = async (req, res) => {
+  try {
+    const order = await orderModel.findById(req.params.orderId);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (String(order.user) !== String(req.account._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only view payments for your own orders",
+      });
+    }
+
+    // Active attempt takes priority; otherwise surface the most recent one.
+    const active = await paymentModel.findOne({
+      orderId: order._id,
+      status: { $in: ACTIVE_STATUSES },
+    });
+    if (active) {
+      await lazyExpirePayment(active);
+    }
+    const latest = await paymentModel.findOne({ orderId: order._id }).sort({ createdAt: -1 });
+    const payment = active || latest;
+
+    const moneyRecorded =
+      order.paymentStatus === "paid" || order.paymentStatus === "completed";
+    const payable =
+      order.status === "Processing" && order.deliveryCharge != null && !moneyRecorded;
+
+    const hasReceived = await paymentModel.exists({
+      orderId: order._id,
+      status: "payment_received",
+    });
+
+    const gatewayStatus = getGatewayStatus();
+
+    return res.json({
+      success: true,
+      data: {
+        order: {
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+        },
+        paymentRequired: payable,
+        canInitiate: payable && !hasReceived,
+        amount: payable ? computeAmount(order) : null,
+        availableProviders: gatewayStatus.isReady
+          ? gatewayStatus.availableProviders
+          : [],
+        payment: payment ? await formatPaymentResponse(payment) : null,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to load payment state" });
+  }
+};
+
 // ── shape the payment data for the frontend ────────────────────
 // SECURITY: never include provider secrets, internal config, or raw payloads.
-function formatPaymentResponse(payment, providerResult = null) {
+// The frontend must NOT receive provider credentials or merchant config.
+async function formatPaymentResponse(payment, providerResult = null) {
   const data = {
     paymentId: payment._id,
     provider: payment.provider,
@@ -232,10 +415,28 @@ function formatPaymentResponse(payment, providerResult = null) {
 
     if (providerResult) {
     if (providerResult.flow) data.flow = providerResult.flow;
-    // Always show QR code (unified QR works with all Nepali payment apps)
-    if (providerResult.qrData) {
+    // The QR image is rendered locally from the exact provider-returned
+    // QR content — treated as opaque provider output and never modified.
+    const qrOutput =
+      providerResult.qrString ??
+      providerResult.metadata?.qrString ??
+      (payment.qrString || null);
+    if (qrOutput) {
       data.flow = "qr";
-      data.qrData = providerResult.qrData;
+      try {
+        data.qrData = await QRCode.toDataURL(qrOutput, { width: 300, margin: 2, errorCorrectionLevel: "M" });
+      } catch (qrErr) {
+        // QR rendering failure — do not fail the whole request; the payment
+        // record still holds the provider's output.
+        console.error("QR image render failed:", qrErr.message);
+      }
+    }
+  } else if (payment.qrString) {
+    data.flow = "qr";
+    try {
+      data.qrData = await QRCode.toDataURL(payment.qrString, { width: 300, margin: 2, errorCorrectionLevel: "M" });
+    } catch (qrErr) {
+      console.error("QR image render failed:", qrErr.message);
     }
   }
 
@@ -303,6 +504,7 @@ export const recordCashPayment = async (req, res) => {
     });
     if (activePayment) {
       activePayment.status = "cancelled";
+      activePayment.activeAttempt = null;
       await activePayment.save();
     }
 
@@ -383,6 +585,7 @@ export const cancelPayment = async (req, res) => {
 
     if (activePayment) {
       activePayment.status = "cancelled";
+      activePayment.activeAttempt = null;
       await activePayment.save();
     }
 
@@ -438,6 +641,7 @@ export const revokeCashPayment = async (req, res) => {
 
     // Mark cash payment as cancelled
     cashPayment.status = "cancelled";
+    cashPayment.activeAttempt = null;
     await cashPayment.save();
 
     // Reset order payment status
@@ -475,6 +679,11 @@ export const getPaymentStatus = async (req, res) => {
         message: "Not authorised to check this payment",
       });
     }
+
+    // Lazy expiry (Phase 8A audit §J / §P-5): report a deterministic
+    // `payment_expired` instead of a stale active status while the MongoDB
+    // TTL monitor sweep (up to ~60 s) has not yet removed the document.
+    await lazyExpirePayment(payment);
 
     res.json({
       success: true,
@@ -627,7 +836,7 @@ const createSettlement = async (payment, order) => {
  *   7. Order paymentStatus update
  *
  * @param {Object}  opts
- * @param {string}  opts.providerName              – "nepalpay" | "mock"
+ * @param {string}  opts.providerName              – "mock" | "fonepay"
  * @param {string}  opts.providerTransactionId     – gateway's transaction ID
  * @param {number|null} opts.amountReceived        – amount from gateway callback
  * @param {string}  opts.merchantRef               – our merchant reference
@@ -649,11 +858,22 @@ const verifyAndCompletePayment = async ({
   }
 
   // ── 2. Idempotency — already verified or failed? ───────────
+  // activeAttempt is defensively cleared here too: a terminal record must
+  // never hold activeAttempt="active", or its partial-unique-index entry
+  // would additionally block any brand-new active payment for the order.
   if (payment.status === "payment_verified") {
+    if (payment.activeAttempt) {
+      payment.activeAttempt = null;
+      await payment.save();
+    }
     return { status: "already_verified", payment };
   }
 
   if (payment.status === "payment_failed" || payment.status === "payment_expired") {
+    if (payment.activeAttempt) {
+      payment.activeAttempt = null;
+      await payment.save();
+    }
     return { status: "terminal", payment };
   }
 
@@ -661,6 +881,7 @@ const verifyAndCompletePayment = async ({
   if (payment.expiresAt && payment.expiresAt < new Date()) {
     payment.status = "payment_expired";
     payment.failureReason = "Payment expired before callback received";
+    payment.activeAttempt = null;
     await payment.save();
     return { status: "expired", payment };
   }
@@ -671,8 +892,29 @@ const verifyAndCompletePayment = async ({
   if (!order) {
     payment.status = "payment_failed";
     payment.failureReason = "Order no longer exists";
+    payment.activeAttempt = null;
     await payment.save();
     return { status: "order_missing", payment };
+  }
+
+  // ── 4b. Order state-machine guard (Phase 8A audit §D / §P-7) ──
+  // Reject verification when the order is in a state where money must not
+  // be recorded (Delivered/Cancelled) or where money is ALREADY recorded
+  // (paid = digital verified, completed = cash, refunded). Because step 2
+  // short-circuits already-verified payments, any verification that reaches
+  // this point on a fully-settled order is for a DIFFERENT provider/attempt
+  // — granting it would double-collect. The payment is failed instead.
+  const orderAlreadySettled = ["paid", "completed", "refunded"].includes(
+    order.paymentStatus
+  );
+  if (order.status === "Delivered" || order.status === "Cancelled" || orderAlreadySettled) {
+    payment.status = "payment_failed";
+    payment.failureReason = orderAlreadySettled
+      ? "Payment already recorded for this order"
+      : `Order is ${order.status} — payment can no longer be verified`;
+    payment.activeAttempt = null;
+    await payment.save();
+    return { status: "state_invalid", payment };
   }
 
   // ── 5. Set provider transaction ID (for first callback) ────
@@ -697,6 +939,7 @@ const verifyAndCompletePayment = async ({
       payment.status = "amount_mismatch";
       payment.amountReceived = actual;
       payment.failureReason = `Amount mismatch: expected ${expected}, received ${actual}`;
+      payment.activeAttempt = null;
       await payment.save();
       return { status: "amount_mismatch", payment };
     }
@@ -712,8 +955,11 @@ const verifyAndCompletePayment = async ({
   } catch (verifyErr) {
     // Gateway unavailable — mark as received but not verified.
     // The vendor can retry verification later via status poll.
+    // payment_received is NOT an active attempt anymore — retryable only by
+    // verification — so activeAttempt drops back to null.
     payment.status = "payment_received";
     payment.failureReason = `Gateway verification failed: ${verifyErr.message}`;
+    payment.activeAttempt = null;
     await payment.save();
     return { status: "gateway_unavailable", payment };
   }
@@ -722,6 +968,7 @@ const verifyAndCompletePayment = async ({
     payment.status = "payment_failed";
     payment.failureReason = "Provider verification failed";
     payment.amountReceived = verification.amountReceived || null;
+    payment.activeAttempt = null;
     await payment.save();
     return { status: "verification_failed", payment };
   }
@@ -732,6 +979,7 @@ const verifyAndCompletePayment = async ({
       payment.status = "amount_mismatch";
       payment.amountReceived = verification.amountReceived;
       payment.failureReason = `Amount mismatch after verification: expected ${payment.amountExpected}, got ${verification.amountReceived}`;
+      payment.activeAttempt = null;
       await payment.save();
       return { status: "amount_mismatch", payment };
     }
@@ -743,6 +991,7 @@ const verifyAndCompletePayment = async ({
   payment.paidAt = payment.paidAt || new Date();
   payment.verifiedAt = new Date();
   payment.failureReason = null;
+  payment.activeAttempt = null;
   await payment.save();
 
   // ── 9b. Mark pending cash fees as deducted ──────────────────
