@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ItemImage } from '@/components/catalog';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useApprovedItems } from '@/hooks/useApprovedItems';
 import { t, money, num, iname } from '@/i18n';
@@ -40,9 +41,6 @@ export default function CartScreen() {
 
   const lines = useCartStore((s) => s.lines);
   const hydrated = useCartStore((s) => s.hydrated);
-  const increaseQuantity = useCartStore((s) => s.increaseQuantity);
-  const decreaseQuantity = useCartStore((s) => s.decreaseQuantity);
-  const removeItem = useCartStore((s) => s.removeItem);
 
   const { data: catalog } = useApprovedItems();
   const byId = useMemo(
@@ -60,75 +58,28 @@ export default function CartScreen() {
     }
   };
 
-  const renderLine = ({ item }: { item: ResolvedCartLine }) => {
-    const { line, live } = item;
-    const displayName = iname(lang, live ?? line);
-    const unit = unitOf(lang, live ?? line);
-    const price = cartLinePrice(line, live);
-    const qty = line.quantityKg;
+  const renderLine = useCallback(
+    ({ item }: { item: ResolvedCartLine }) => <CartRow line={item} />,
+    []
+  );
 
-    return (
-      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <View style={styles.rowTop}>
-          <ItemImage filename={live?.image ?? line.image} name={displayName} />
-          <View style={styles.rowTopText}>
-            <Text style={[styles.name, { color: palette.text }]} numberOfLines={2}>
-              {displayName}
-            </Text>
-            <Text style={[styles.unitPrice, { color: palette.textMuted }]}>
-              {money(lang, price)}
-              {'/'}
-              {unit}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.rowControls}>
-          <View style={styles.qtyRow}>
-            <Pressable
-              onPress={() => decreaseQuantity(line.itemId)}
-              accessibilityRole="button"
-              accessibilityLabel={t(lang, 'decreaseAria', { name: displayName })}
-              style={({ pressed }) => [
-                styles.qtyBtn,
-                { borderColor: palette.border, opacity: pressed ? 0.6 : 1 },
-              ]}
-            >
-              <Text style={[styles.qtyBtnText, { color: palette.text }]}>−</Text>
-            </Pressable>
-            <View style={styles.qtyValue}>
-              <Text style={[styles.qtyText, { color: palette.text }]}>{num(lang, qty.toFixed(1))}</Text>
-              <Text style={[styles.qtyUnit, { color: palette.textMuted }]}>{unit}</Text>
-            </View>
-            <Pressable
-              onPress={() => increaseQuantity(line.itemId)}
-              accessibilityRole="button"
-              accessibilityLabel={t(lang, 'increaseAria', { name: displayName })}
-              style={({ pressed }) => [
-                styles.qtyBtn,
-                { borderColor: palette.border, opacity: pressed ? 0.6 : 1 },
-              ]}
-            >
-              <Text style={[styles.qtyBtnText, { color: palette.text }]}>+</Text>
-            </Pressable>
-          </View>
-          <Text style={[styles.lineTotal, { color: palette.text }]}>
-            {money(lang, cartLineTotal(line, live))}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={() => removeItem(line.itemId)}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'removeItemAria', { name: displayName })}
-          hitSlop={8}
-          style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }, styles.removeWrap]}
-        >
-          <Text style={[styles.removeText, { color: palette.danger }]}>{t(lang, 'remove')}</Text>
-        </Pressable>
+  const footer = useMemo(
+    () => (
+      <View
+        style={[styles.summary, { backgroundColor: palette.surface, borderColor: palette.border }]}
+      >
+        <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>
+          {t(lang, 'subtotalWithCount', { qty: num(lang, cartTotalKg(lines).toFixed(1)) })}
+        </Text>
+        <Text style={[styles.summaryValue, { color: palette.text }]}>{money(lang, subtotal)}</Text>
+        <Text style={[styles.checkoutNote, { color: palette.textMuted }]}>
+          {t(lang, 'checkoutNote')}
+        </Text>
+        <Button title={t(lang, 'goToCheckout')} onPress={() => router.push('/checkout')} />
       </View>
-    );
-  };
+    ),
+    [lang, palette, lines, subtotal]
+  );
 
   let content;
 
@@ -153,77 +104,123 @@ export default function CartScreen() {
           styles.listContent,
           { paddingBottom: insets.bottom + spacing.xl },
         ]}
-        ListFooterComponent={
-          <View style={[styles.summary, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>
-              {t(lang, 'subtotalWithCount', { qty: num(lang, cartTotalKg(lines).toFixed(1)) })}
-            </Text>
-            <Text style={[styles.summaryValue, { color: palette.text }]}>{money(lang, subtotal)}</Text>
-            <Text style={[styles.checkoutNote, { color: palette.textMuted }]}>
-              {t(lang, 'checkoutNote')}
-            </Text>
-            <Button title={t(lang, 'goToCheckout')} onPress={() => router.push('/checkout')} />
-          </View>
-        }
+        ListFooterComponent={footer}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={12}
+        removeClippedSubviews
       />
     );
   }
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: palette.background, paddingTop: insets.top },
-      ]}
-    >
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'yourCart')}
-        </Text>
-        <View style={styles.topSpacer} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar title={t(lang, 'yourCart')} onBack={handleBack} backAriaLabel={t(lang, 'backAria')} />
       </View>
       {content}
     </View>
   );
 }
 
+interface CartRowProps {
+  line: ResolvedCartLine;
+}
+
+/**
+ * One cart row, memoized so only the tapped row re-renders when a quantity
+ * changes. Actions and theme are read from their stores (stable references).
+ *
+ * `resolveCartLines` rebuilds the `{ line, live }` wrapper objects on every
+ * cart change, so a plain shallow compare can never pass — every row would
+ * re-render on each tap. The comparator bails out whenever the underlying
+ * `line` and `live` references are unchanged, which is exactly the case for
+ * every row except the one whose quantity actually moved.
+ */
+const CartRow = memo(
+  function CartRow({ line }: CartRowProps) {
+    const { palette, lang } = useAppTheme();
+    const increaseQuantity = useCartStore((s) => s.increaseQuantity);
+    const decreaseQuantity = useCartStore((s) => s.decreaseQuantity);
+    const removeItem = useCartStore((s) => s.removeItem);
+
+    const { live } = line;
+    const displayName = iname(lang, live ?? line.line);
+    const unit = unitOf(lang, live ?? line.line);
+    const price = cartLinePrice(line.line, live);
+    const qty = line.line.quantityKg;
+
+    return (
+      <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+        <View style={styles.rowTop}>
+          <ItemImage filename={live?.image ?? line.line.image} name={displayName} />
+          <View style={styles.rowTopText}>
+            <Text style={[styles.name, { color: palette.text }]} numberOfLines={2}>
+              {displayName}
+            </Text>
+            <Text style={[styles.unitPrice, { color: palette.textMuted }]}>
+              {money(lang, price)}
+              {'/'}
+              {unit}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.rowControls}>
+          <View style={styles.qtyRow}>
+            <Pressable
+              onPress={() => decreaseQuantity(line.line.itemId)}
+              accessibilityRole="button"
+              accessibilityLabel={t(lang, 'decreaseAria', { name: displayName })}
+              style={({ pressed }) => [
+                styles.qtyBtn,
+                { borderColor: palette.border, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.qtyBtnText, { color: palette.text }]}>−</Text>
+            </Pressable>
+            <View style={styles.qtyValue}>
+              <Text style={[styles.qtyText, { color: palette.text }]}>{num(lang, qty.toFixed(1))}</Text>
+              <Text style={[styles.qtyUnit, { color: palette.textMuted }]}>{unit}</Text>
+            </View>
+            <Pressable
+              onPress={() => increaseQuantity(line.line.itemId)}
+              accessibilityRole="button"
+              accessibilityLabel={t(lang, 'increaseAria', { name: displayName })}
+              style={({ pressed }) => [
+                styles.qtyBtn,
+                { borderColor: palette.border, opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.qtyBtnText, { color: palette.text }]}>+</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.lineTotal, { color: palette.text }]}>
+            {money(lang, cartLineTotal(line.line, live))}
+          </Text>
+        </View>
+
+      <Pressable
+          onPress={() => removeItem(line.line.itemId)}
+          accessibilityRole="button"
+          accessibilityLabel={t(lang, 'removeItemAria', { name: displayName })}
+          hitSlop={8}
+          style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }, styles.removeWrap]}
+        >
+          <Text style={[styles.removeText, { color: palette.danger }]}>{t(lang, 'remove')}</Text>
+        </Pressable>
+      </View>
+    );
+  },
+  (prev, next) => prev.line.line === next.line.line && prev.line.live === next.line.live
+);
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
+  navBar: {
     paddingBottom: spacing.sm,
-  },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
   },
   listContent: {
     paddingHorizontal: spacing.md,

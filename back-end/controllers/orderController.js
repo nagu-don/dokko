@@ -1,5 +1,6 @@
 import orderModel, { ADDITIONAL_CHARGES, ORDER_STATUSES } from "../models/orderModel.js";
 import itemModel from "../models/itemModel.js";
+import vendorModel from "../models/vendorModel.js";
 import commissionConfigModel from "../models/commissionConfigModel.js";
 
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -159,6 +160,83 @@ const myOrders = async (req, res) => {
   }
 };
 
+// USER — read the assigned vendor's LIVE location for one of my orders.
+//
+// SECURITY / AUTHORIZATION (server-authoritative):
+//   - `req.account` is the authenticated customer (set by authUser); we
+//     verify order.user === req.account._id before returning anything.
+//   - The vendor id is derived from the order doc, never from the client.
+//   - Tracking is only surfaced while the order is Processing (assigned).
+//     Before a vendor accepts (Pending / no vendor), and after the terminal
+//     states (Delivered / Cancelled), tracking is disabled and NO live
+//     location is returned.
+//   - Only the dedicated `liveLocation` field is returned — the static
+//     `location` used for geo-matching is NEVER exposed as live.
+//   - `lastUpdatedAt` is the server timestamp recorded when the vendor last
+//     reported a position, so the UI can show how fresh the data is.
+const getOrderVendorLocation = async (req, res) => {
+  try {
+    const order = await orderModel.findById(req.params.orderId);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    if (String(order.user) !== String(req.account._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only track your own orders",
+      });
+    }
+
+    // Tracking only while an order is assigned and in progress.
+    const trackingAllowed =
+      order.status === "Processing" && Boolean(order.vendor);
+
+    if (!trackingAllowed) {
+      return res.json({
+        success: true,
+        data: { tracking: false, location: null },
+      });
+    }
+
+    const vendor = await vendorModel
+      .findById(order.vendor, { name: 1, liveLocation: 1 })
+      .lean();
+
+    if (!vendor || !vendor.liveLocation || !vendor.liveLocation.coordinates) {
+      return res.json({
+        success: true,
+        data: {
+          tracking: true,
+          vendor: vendor ? { id: String(vendor._id), name: vendor.name } : null,
+          location: null,
+        },
+      });
+    }
+
+    const [lng, lat] = vendor.liveLocation.coordinates;
+
+    res.json({
+      success: true,
+      data: {
+        tracking: true,
+        vendor: { id: String(vendor._id), name: vendor.name },
+        location: {
+          lat,
+          lng,
+          lastUpdatedAt: vendor.liveLocation.updatedAt
+            ? new Date(vendor.liveLocation.updatedAt).toISOString()
+            : null,
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to fetch vendor location" });
+  }
+};
+
 // ADMIN — update an order's status
 const updateOrderStatus = async (req, res) => {
   try {
@@ -220,4 +298,4 @@ const getAdditionalChargesConfig = async (_req, res) => {
   }
 };
 
-export { placeOrder, listOrders, updateOrderStatus, myOrders, listOrdersByVendor, getAdditionalChargesConfig };
+export { placeOrder, listOrders, updateOrderStatus, myOrders, listOrdersByVendor, getAdditionalChargesConfig, getOrderVendorLocation };

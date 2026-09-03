@@ -1,6 +1,6 @@
 [
   {
-    "date": "2026-08-28",
+    "date": "2026-09-02",
     "prices": [
       {
         "commodity": "Tomato Large (Nepali)",
@@ -12,30 +12,30 @@
       {
         "commodity": "Tomato Large (Indian)",
         "unit": "kg",
-        "minPrice": 80,
-        "maxPrice": 90,
-        "avgPrice": 85
+        "minPrice": 70,
+        "maxPrice": 80,
+        "avgPrice": 73.33
       },
       {
         "commodity": "Tomato Small (Local)",
         "unit": "kg",
-        "minPrice": 35,
-        "maxPrice": 45,
-        "avgPrice": 40
+        "minPrice": 25,
+        "maxPrice": 30,
+        "avgPrice": 27.5
       },
       {
         "commodity": "Tomato Small (Tunnel)",
         "unit": "kg",
-        "minPrice": 45,
-        "maxPrice": 65,
-        "avgPrice": 52.75
+        "minPrice": 30,
+        "maxPrice": 45,
+        "avgPrice": 39
       },
       {
         "commodity": "गोलभेडा सानो(भारतीय)",
         "unit": "kg",
-        "minPrice": 40,
-        "maxPrice": 50,
-        "avgPrice": 45.75
+        "minPrice": 28,
+        "maxPrice": 35,
+        "avgPrice": 31.5
       },
       {
         "commodity": "Red Potato (Long)",
@@ -49,14 +49,14 @@
         "unit": "kg",
         "minPrice": 48,
         "maxPrice": 53,
-        "avgPrice": 50.5
+        "avgPrice": 50.33
       },
       {
         "commodity": "Red Potato (Mude)",
         "unit": "kg",
         "minPrice": 48,
         "maxPrice": 53,
-        "avgPrice": 50.17
+        "avgPrice": 50.5
       },
       {
         "commodity": "Red Potato (Indian)",
@@ -70,21 +70,21 @@
         "unit": "kg",
         "minPrice": 35,
         "maxPrice": 40,
-        "avgPrice": 37.17
+        "avgPrice": 38
       },
       {
         "commodity": "Dry Onion (Indian)",
         "unit": "kg",
-        "minPrice": 95,
-        "maxPrice": 100,
-        "avgPrice": 97.5
+        "minPrice": 93,
+        "maxPrice": 98,
+        "avgPrice": 96.17
       },
       {
         "commodity": "Carrot (Local)",
         "unit": "kg",
-        "minPrice": 100,
-        "maxPrice": 120,
-        "avgPrice": 110
+        "minPrice": 80,
+        "maxPrice": 100,
+        "avgPrice": 90
       },
       {
         "commodity": "Carrot (Terai)",
@@ -96,16 +96,16 @@
       {
         "commodity": "Cabbage (Local)",
         "unit": "kg",
-        "minPrice": 30,
-        "maxPrice": 40,
-        "avgPrice": 35
+        "minPrice": 25,
+        "maxPrice": 30,
+        "avgPrice": 27.86
       },
       {
         "commodity": "Cauliflower (Local)",
         "unit": "kg",
         "minPrice": 90,
-        "maxPrice": 110,
-        "avgPrice": 97.5
+        "maxPrice": 100,
+        "avgPrice": 94.29
       },
       {
         "commodity": "Red Radish",
@@ -119,14 +119,14 @@
         "unit": "kg",
         "minPrice": 25,
         "maxPrice": 35,
-        "avgPrice": 28.75
+        "avgPrice": 28.33
       },
       {
         "commodity": "Long Eggplant",
         "unit": "kg",
-        "minPrice": 15,
-        "maxPrice": 30,
-        "avgPrice": 21.25
+        "minPrice": 10,
+        "maxPrice": 25,
+        "avgPrice": 16.88
       },
       {
         "commodity": "Round Eggplant",
@@ -138,30 +138,30 @@
       {
         "commodity": "Yardlong Bean",
         "unit": "kg",
-        "minPrice": 60,
-        "maxPrice": 80,
-        "avgPrice": 68.33
+        "minPrice": 40,
+        "maxPrice": 60,
+        "avgPrice": 53.33
       },
       {
         "commodity": "Corn Bean",
         "unit": "kg",
         "minPrice": 90,
         "maxPrice": 100,
-        "avgPrice": 95
+        "avgPrice": 94
       },
       {
         "commodity": "Butter Bean (Local)",
         "unit": "kg",
         "minPrice": 70,
-        "maxPrice": 90,
-        "avgPrice": 80
+        "maxPrice": 80,
+        "avgPrice": 74
       },
       {
         "commodity": "Butter Bean (Hybrid)",
         "unit": "kg",
         "minPrice": 70,
-        "maxPrice": 90,
-        "avgPrice": 80
+        "maxPrice": 80,
+        "avgPrice": 74
       },
       {
         "commodity": "Tate Bean",
@@ -180,51 +180,44 @@
       {
         "commodity": "Bitter Gourd",
         "unit": "kg",
-        "minPrice": 40,
+        "minPrice": 30,
         "maxPrice": 50,
-        "avgPrice": 45.71
+        "avgPrice": 36.67
       },
       {
         "commodity": "Bottle Gourd",
         "unit": "kg",
         "minPrice": 40,
-        "maxPrice": 60,
-        "avgPrice": 51.88
+        "maxPrice": 50,
+        "avgPrice": 45
       },
       {
         "commodity": "Pointed Gourd (Local)",
         "unit": "kg",
-        "minPrice": 70,
-        "maxPrice": 80,
-        "avgPrice": 75
-      },
-      {
-        "commodity": "Pointed Gourd (Terai)",
-        "unit": "kg",
-        "minPrice": 70,
-        "maxPrice": 80,
-        "avgPrice": 75
+        "minPrice": 60,
+        "maxPrice": 70,
+        "avgPrice": 65
       },
       {
         "commodity": "Snake Gourd",
         "unit": "kg",
         "minPrice": 15,
         "maxPrice": 30,
-        "avgPrice": 23.75
+        "avgPrice": 19.17
       },
       {
         "commodity": "Ridge Gourd",
         "unit": "kg",
-        "minPrice": 15,
-        "maxPrice": 30,
-        "avgPrice": 20
+        "minPrice": 10,
+        "maxPrice": 20,
+        "avgPrice": 15
       },
       {
         "commodity": "Zucchini",
         "unit": "kg",
         "minPrice": 50,
-        "maxPrice": 70,
-        "avgPrice": 57.5
+        "maxPrice": 60,
+        "avgPrice": 55
       },
       {
         "commodity": "Ripe Pumpkin",
@@ -236,16 +229,16 @@
       {
         "commodity": "Green Pumpkin (Round)",
         "unit": "kg",
-        "minPrice": 40,
-        "maxPrice": 50,
-        "avgPrice": 45
+        "minPrice": 30,
+        "maxPrice": 40,
+        "avgPrice": 35
       },
       {
         "commodity": "Okra",
         "unit": "kg",
         "minPrice": 30,
-        "maxPrice": 50,
-        "avgPrice": 40
+        "maxPrice": 40,
+        "avgPrice": 35
       },
       {
         "commodity": "Sweet Potato",
@@ -264,23 +257,23 @@
       {
         "commodity": "Chayote",
         "unit": "kg",
-        "minPrice": 20,
-        "maxPrice": 35,
-        "avgPrice": 27.5
+        "minPrice": 15,
+        "maxPrice": 30,
+        "avgPrice": 19.17
       },
       {
         "commodity": "Mustard Greens",
         "unit": "kg",
-        "minPrice": 60,
-        "maxPrice": 100,
-        "avgPrice": 80
+        "minPrice": 40,
+        "maxPrice": 60,
+        "avgPrice": 50
       },
       {
         "commodity": "Spinach",
         "unit": "kg",
         "minPrice": 100,
         "maxPrice": 150,
-        "avgPrice": 132.5
+        "avgPrice": 125
       },
       {
         "commodity": "Mustard Greens",
@@ -292,30 +285,30 @@
       {
         "commodity": "Green Onion",
         "unit": "kg",
-        "minPrice": 150,
-        "maxPrice": 200,
-        "avgPrice": 175
+        "minPrice": 100,
+        "maxPrice": 150,
+        "avgPrice": 125
       },
       {
         "commodity": "Oyster Mushroom",
         "unit": "kg",
-        "minPrice": 220,
-        "maxPrice": 260,
-        "avgPrice": 240
+        "minPrice": 200,
+        "maxPrice": 240,
+        "avgPrice": 220
       },
       {
         "commodity": "Button Mushroom",
         "unit": "kg",
-        "minPrice": 550,
-        "maxPrice": 600,
-        "avgPrice": 575
+        "minPrice": 450,
+        "maxPrice": 500,
+        "avgPrice": 475
       },
       {
         "commodity": "King Oyster Mushroom",
         "unit": "kg",
         "minPrice": 300,
         "maxPrice": 330,
-        "avgPrice": 315
+        "avgPrice": 311.67
       },
       {
         "commodity": "Shiitake Mushroom",
@@ -341,9 +334,9 @@
       {
         "commodity": "Broccoli",
         "unit": "kg",
-        "minPrice": 130,
-        "maxPrice": 150,
-        "avgPrice": 140
+        "minPrice": 100,
+        "maxPrice": 120,
+        "avgPrice": 112
       },
       {
         "commodity": "Beetroot",
@@ -446,9 +439,9 @@
       {
         "commodity": "Apple (Fuji)",
         "unit": "kg",
-        "minPrice": 300,
-        "maxPrice": 350,
-        "avgPrice": 325
+        "minPrice": 350,
+        "maxPrice": 400,
+        "avgPrice": 375
       },
       {
         "commodity": "Banana (Nepali)",
@@ -467,9 +460,9 @@
       {
         "commodity": "Lemon",
         "unit": "kg",
-        "minPrice": 250,
-        "maxPrice": 300,
-        "avgPrice": 275
+        "minPrice": 350,
+        "maxPrice": 400,
+        "avgPrice": 370
       },
       {
         "commodity": "Pomegranate",
@@ -477,20 +470,6 @@
         "minPrice": 250,
         "maxPrice": 300,
         "avgPrice": 275
-      },
-      {
-        "commodity": "Mango (Maldah)",
-        "unit": "kg",
-        "minPrice": 250,
-        "maxPrice": 300,
-        "avgPrice": 275
-      },
-      {
-        "commodity": "Mango (Chausa)",
-        "unit": "kg",
-        "minPrice": 230,
-        "maxPrice": 250,
-        "avgPrice": 240
       },
       {
         "commodity": "Watermelon (Green)",
@@ -517,22 +496,22 @@
         "commodity": "Cucumber (Local)",
         "unit": "kg",
         "minPrice": 40,
-        "maxPrice": 50,
-        "avgPrice": 45
+        "maxPrice": 60,
+        "avgPrice": 46.25
       },
       {
         "commodity": "Cucumber (Hybrid)",
         "unit": "kg",
         "minPrice": 10,
         "maxPrice": 20,
-        "avgPrice": 13.75
+        "avgPrice": 14.17
       },
       {
         "commodity": "Cucumber (Local Cross)",
         "unit": "kg",
         "minPrice": 40,
-        "maxPrice": 50,
-        "avgPrice": 45
+        "maxPrice": 60,
+        "avgPrice": 47.5
       },
       {
         "commodity": "Jackfruit",
@@ -635,16 +614,16 @@
       {
         "commodity": "Green Chili (Long)",
         "unit": "kg",
-        "minPrice": 50,
-        "maxPrice": 60,
-        "avgPrice": 55
+        "minPrice": 60,
+        "maxPrice": 70,
+        "avgPrice": 65
       },
       {
         "commodity": "Green Chili (Bullet)",
         "unit": "kg",
-        "minPrice": 50,
-        "maxPrice": 60,
-        "avgPrice": 55
+        "minPrice": 60,
+        "maxPrice": 70,
+        "avgPrice": 65
       },
       {
         "commodity": "Green Chili (Mache)",
@@ -670,16 +649,16 @@
       {
         "commodity": "Green Garlic",
         "unit": "kg",
-        "minPrice": 150,
-        "maxPrice": 200,
-        "avgPrice": 175
+        "minPrice": 100,
+        "maxPrice": 150,
+        "avgPrice": 125
       },
       {
         "commodity": "Green Coriander",
         "unit": "kg",
-        "minPrice": 400,
-        "maxPrice": 500,
-        "avgPrice": 433.33
+        "minPrice": 80,
+        "maxPrice": 100,
+        "avgPrice": 93.33
       },
       {
         "commodity": "Dry Garlic (Chinese)",

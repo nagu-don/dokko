@@ -1,5 +1,5 @@
 import express from "express";
-import { placeOrder, listOrders, updateOrderStatus, myOrders, listOrdersByVendor, getAdditionalChargesConfig } from "../controllers/orderController.js";
+import { placeOrder, listOrders, updateOrderStatus, myOrders, listOrdersByVendor, getAdditionalChargesConfig, getOrderVendorLocation } from "../controllers/orderController.js";
 import { getOrderPayment, initiateCustomerPayment } from "../controllers/paymentController.js";
 import { authUser, authAdmin } from "../middleware/authMiddleware.js";
 
@@ -17,5 +17,6 @@ orderRouter.patch("/status/:id", authAdmin, updateOrderStatus);
 // (order.user === req.account._id). Amounts are always server-authoritative.
 orderRouter.get("/:orderId/payment", authUser, getOrderPayment);
 orderRouter.post("/:orderId/payment", authUser, initiateCustomerPayment);
+orderRouter.get("/:orderId/vendor-location", authUser, getOrderVendorLocation);
 
 export default orderRouter;

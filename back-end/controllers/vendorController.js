@@ -71,6 +71,87 @@ export const updateVendorLocation = async (req, res) => {
   }
 };
 
+// Minimum delay (ms) between two live-location writes from the same
+// vendor. Guards against runaway GPS loops flooding the database while
+// still allowing a responsive ~10s client cadence to pass through.
+const LIVE_LOCATION_MIN_INTERVAL_MS = 2000;
+
+// ---- send the vendor's live GPS position during a delivery ----
+// Used by the vendor app while an accepted order is being delivered, so
+// the assigned customer can watch the courier move in near-real time.
+//
+// SECURITY BOUNDARY:
+//   - Self-only: `req.account` is the authenticated vendor (set by
+//     authVendor); we never read the vendor id from the body.
+//   - Lifecycle: the vendor may only report a live position while they
+//     have an ACTIVE (status === "Processing") order assigned. This means
+//     tracking stops as soon as the order is Delivered/Cancelled.
+//   - This writes to the dedicated `liveLocation` field, NEVER the static
+//     `location` field used for geo-matching.
+//   - Coordinates are validated to |lat| <= 90, |lng| <= 180.
+//   - `updatedAt` is set server-side (not trusted from the client).
+export const updateVendorLiveLocation = async (req, res) => {
+  try {
+    const lat = Number(req.body.lat);
+    const lng = Number(req.body.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid latitude and longitude are required",
+      });
+    }
+
+    const vendorId = req.account._id;
+
+    // Lifecycle guard: only report a live location while there is an
+    // in-progress order assigned to this vendor. Once every assigned order
+    // reaches a terminal state, tracking is no longer allowed.
+    const activeOrder = await orderModel.findOne({
+      vendor: vendorId,
+      status: "Processing",
+    });
+
+    if (!activeOrder) {
+      return res.status(409).json({
+        success: false,
+        message: "No active delivery to track",
+      });
+    }
+
+    // Rate guard: reject updates that come too fast after the previous one.
+    const lastUpdate = req.account.liveLocation?.updatedAt
+      ? new Date(req.account.liveLocation.updatedAt).getTime()
+      : 0;
+    if (lastUpdate && Date.now() - lastUpdate < LIVE_LOCATION_MIN_INTERVAL_MS) {
+      return res.status(429).json({
+        success: false,
+        message: "Location update too frequent",
+      });
+    }
+
+    req.account.liveLocation = {
+      type: "Point",
+      coordinates: [lng, lat],
+      updatedAt: new Date(),
+    };
+    await req.account.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Live location updated",
+      data: {
+        lat,
+        lng,
+        updatedAt: req.account.liveLocation.updatedAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to update live location" });
+  }
+};
+
 // ---- payout / settlement destination ----
 
 // GET — return the vendor's current payout details (masked account number)
@@ -485,31 +566,66 @@ export const acceptRequest = async (req, res) => {
 };
 
 // ---- mark an accepted order as completed ----
+// Uses an atomic findOneAndUpdate with vendor + status + payment guards
+// so concurrent or duplicate completions cannot produce invalid state.
+// Payment must be in a verified state (paid or cash_recorded/completed)
+// before delivery can be marked complete.
 export const completeRequest = async (req, res) => {
   try {
-    const order = await orderModel.findById(req.params.id);
+    const updated = await orderModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        vendor: req.account._id,
+        status: "Processing",
+        paymentStatus: { $in: ["paid", "completed"] },
+      },
+      {
+        $set: {
+          status: "Delivered",
+          completedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" }
+    ).populate("user", "name email phone");
 
-    if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
-    if (String(order.vendor) !== String(req.account._id)) {
-      return res.status(403).json({
-        success: false,
-        message: "This order is not assigned to you",
-      });
-    }
-    if (order.status !== "Processing") {
+    if (!updated) {
+      // Distinguish between not-found and invalid-state by checking existence
+      const order = await orderModel.findById(req.params.id);
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+      if (String(order.vendor) !== String(req.account._id)) {
+        return res.status(403).json({
+          success: false,
+          message: "This order is not assigned to you",
+        });
+      }
+      if (order.status === "Delivered") {
+        return res.status(409).json({
+          success: false,
+          message: "Order already completed",
+        });
+      }
+      if (order.status !== "Processing") {
+        return res.status(409).json({
+          success: false,
+          message: "Only accepted orders can be completed",
+        });
+      }
+      if (!["paid", "completed"].includes(order.paymentStatus)) {
+        return res.status(409).json({
+          success: false,
+          message: "Payment must be confirmed before completing delivery",
+        });
+      }
       return res.status(409).json({
         success: false,
-        message: "Only accepted orders can be completed",
+        message: "Order cannot be completed",
       });
     }
 
-    order.status = "Delivered";
-    order.completedAt = new Date();
-    await order.save();
-
-    res.json({ success: true, message: "Order completed", data: presentOrder(order) });
+    res.json({ success: true, message: "Order completed", data: presentOrder(updated) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Failed to complete order" });

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, FormError, FormTextField } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
 import { LoadingView } from '@/components/LoadingView';
 import { LocationPickerModal } from '@/components/location';
 import { useApprovedItems } from '@/hooks/useApprovedItems';
@@ -337,26 +338,13 @@ export default function CheckoutScreen() {
   }
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: palette.background, paddingTop: insets.top },
-      ]}
-    >
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'checkoutTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar
+          title={t(lang, 'checkoutTitle')}
+          onBack={handleBack}
+          backAriaLabel={t(lang, 'backAria')}
+        />
       </View>
 
       {content}
@@ -379,30 +367,8 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
+  navBar: {
     paddingBottom: spacing.sm,
-  },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
   },
   scroll: {
     flex: 1,

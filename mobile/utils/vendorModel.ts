@@ -11,8 +11,6 @@ import type { VendorProfile } from '@/types';
  * backend exposes to a vendor to gate request eligibility (getVendorProfile).
  * `isAvailable` is not readable by vendors; see vendorService.ts.
  */
-
-/** A vendor is operational once they set a working location. */
 export function isVendorReady(profile: VendorProfile | null | undefined): boolean {
   return profile?.hasSetLocation === true;
 }
@@ -55,4 +53,29 @@ export function vendorPriorityStageLabel(lang: AppLang, stage: string): string {
 export function vendorDistanceLabel(lang: AppLang, km: number | undefined): string {
   if (typeof km !== 'number') return '';
   return t(lang, 'vendorDistanceUnit', { km });
+}
+
+/**
+ * Controlled mapping of ORDER-level payment status (order.paymentStatus — the
+ * vendor's view) to a localized, vendor-appropriate label. Values come from
+ * orderModel.js PAYMENT_STATUSES.
+ */
+export function vendorPaymentStatusLabel(
+  lang: AppLang,
+  value: string | null | undefined
+): string {
+  switch (value) {
+    case 'unpaid':
+      return t(lang, 'vendorPaymentStatusUnpaid');
+    case 'pending':
+      return t(lang, 'vendorPaymentStatusPending');
+    case 'paid':
+      return t(lang, 'vendorPaymentStatusPaid');
+    case 'completed':
+      return t(lang, 'vendorPaymentStatusCompleted');
+    case 'failed':
+      return t(lang, 'vendorPaymentStatusFailed');
+    default:
+      return value || t(lang, 'vendorPaymentStatusUnpaid');
+  }
 }

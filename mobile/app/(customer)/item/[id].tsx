@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ItemImage } from '@/components/catalog';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useApprovedItems } from '@/hooks/useApprovedItems';
 import { t, money, iname, num } from '@/i18n';
@@ -242,26 +243,13 @@ export default function ItemDetailsScreen() {
   }
 
   return (
-    <View
-      style={[
-        styles.screen,
-        { backgroundColor: palette.background, paddingTop: insets.top },
-      ]}
-    >
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'itemDetailsTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar
+          title={t(lang, 'itemDetailsTitle')}
+          onBack={handleBack}
+          backAriaLabel={t(lang, 'backAria')}
+        />
       </View>
       {content}
     </View>
@@ -272,30 +260,8 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
+  navBar: {
     paddingBottom: spacing.sm,
-  },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
   },
   content: {
     flex: 1,

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { myOrdersQueryKey } from '@/hooks/useMyOrders';
 import { useInitiateOrderPayment, useOrderPaymentState } from '@/hooks/useOrderPayment';
@@ -291,23 +292,15 @@ export default function PaymentScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'paymentTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar
+          title={t(lang, 'paymentTitle')}
+          onBack={handleBack}
+          backAriaLabel={t(lang, 'backAria')}
+        />
       </View>
-      {content}
+      <View style={styles.body}>{content}</View>
     </View>
   );
 }
@@ -384,33 +377,14 @@ function AttemptCard({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  navBar: {
     paddingBottom: spacing.sm,
   },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
+  body: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   scroll: { flex: 1 },
   content: { gap: spacing.md },

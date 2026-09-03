@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { spacing, radius } from '@/theme';
 
@@ -7,7 +8,7 @@ interface ButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: 'primary' | 'secondary' | 'danger' | 'brand';
 }
 
 /**
@@ -24,13 +25,17 @@ export function Button({
   const { palette } = useAppTheme();
 
   const background =
-    variant === 'primary'
-      ? palette.primary
-      : variant === 'danger'
-        ? palette.danger
-        : palette.surface;
+    variant === 'brand'
+      ? BRAND_BG
+      : variant === 'primary'
+        ? palette.primary
+        : variant === 'danger'
+          ? palette.danger
+          : palette.surface;
   const textColor =
-    variant === 'primary' || variant === 'danger' ? '#FFFFFF' : palette.text;
+    variant === 'primary' || variant === 'danger' || variant === 'brand'
+      ? '#FFFFFF'
+      : palette.text;
 
   const inactive = disabled || loading;
 

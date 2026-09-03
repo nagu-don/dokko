@@ -1,17 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ItemCard } from '@/components/catalog';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useApprovedItems } from '@/hooks/useApprovedItems';
 import { t, num } from '@/i18n';
@@ -65,65 +68,78 @@ export default function CustomerHomeScreen() {
   const hasItems = data != null && data.length > 0;
   const isNoResults = hasItems && query.trim().length > 0 && visibleGroups.length === 0;
 
+  // Stable inline renderer so VirtualizedList can re-use rendered group
+  // cards without rebuilding them on every parent re-render.
+  const renderGroup = useCallback(
+    ({ item }: { item: ItemGroup }) => <ItemCard group={item} />,
+    []
+  );
+
   const handleSignOut = async () => {
     await logout();
     router.replace('/login');
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <View style={styles.heading}>
-          <Text style={[styles.title, { color: palette.text }]}>{t(lang, 'homeBrowseTitle')}</Text>
-          <Text style={[styles.subtitle, { color: palette.textMuted }]}>{t(lang, 'tagline')}</Text>
-        </View>
-        <Pressable
-          onPress={() => router.push('/cart')}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'openCartAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.cartBtn, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <View style={[styles.cartIconBox, { borderColor: palette.border }]}>
-            <View style={[styles.cartHandle, { borderColor: palette.textMuted }]} />
-            <View style={[styles.cartBasket, { backgroundColor: palette.textMuted }]} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <View style={styles.brandRow}>
+          <View style={styles.brandHeading}>
+            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
-          {cartHydrated && totalKg > 0 ? (
-            <View style={[styles.cartBadge, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.cartBadgeText, { color: palette.primaryText }]}>
-                {num(lang, totalKg.toFixed(1))}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
-        <Pressable
-          onPress={() => router.push('/orders')}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'myOrders')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.ordersLink, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.ordersText, { color: palette.primary }]}>{t(lang, 'myOrders')}</Text>
-        </Pressable>
-        <Pressable
-          onPress={handleSignOut}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={({ pressed }) => [styles.signOut, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.signOutText, { color: palette.danger }]}>{t(lang, 'signOut')}</Text>
-        </Pressable>
+          <Pressable
+            onPress={() => router.push('/cart')}
+            accessibilityRole="button"
+            accessibilityLabel={t(lang, 'openCartAria')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.navIconBtn, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="cart" size={26} color="#FFFFFF" />
+            {cartHydrated && totalKg > 0 ? (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{num(lang, totalKg.toFixed(1))}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel={t(lang, 'settings')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.navIconBtn, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="settings" size={24} color="#FFFFFF" />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/orders')}
+            accessibilityRole="button"
+            accessibilityLabel={t(lang, 'myOrders')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.ordersLink, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={styles.ordersText}>{t(lang, 'myOrders')}</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleSignOut}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [styles.signOut, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={styles.signOutText}>{t(lang, 'signOut')}</Text>
+          </Pressable>
+        </View>
       </View>
 
-      <View
-        style={[
-          styles.searchRow,
-          {
-            backgroundColor: palette.surface,
-            borderColor: focused ? palette.primary : palette.border,
-          },
-        ]}
-      >
+      <View style={styles.body}>
+        <View
+          style={[
+            styles.searchRow,
+            {
+              backgroundColor: palette.surface,
+              borderColor: focused ? palette.primary : palette.border,
+            },
+          ]}
+        >
         <TextInput
           style={[styles.searchInput, { color: palette.text }]}
           value={query}
@@ -177,11 +193,15 @@ export default function CustomerHomeScreen() {
           <FlatList
             data={sortedGroups}
             keyExtractor={(group) => group.key}
-            renderItem={({ item }) => <ItemCard group={item} />}
+            renderItem={renderGroup}
             ItemSeparatorComponent={Separator}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            initialNumToRender={12}
+            maxToRenderPerBatch={12}
+            windowSize={12}
+            removeClippedSubviews
           />
         ) : (
           <View style={styles.centered}>
@@ -193,6 +213,15 @@ export default function CustomerHomeScreen() {
             </Text>
           </View>
         )}
+        </View>
+
+        {cartHydrated && totalKg > 0 ? (
+          <Button
+            title={t(lang, 'proceedWithOrder')}
+            onPress={() => router.push('/cart')}
+            variant="brand"
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -205,26 +234,47 @@ function Separator() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
   },
-  header: {
+  navBar: {
+    paddingBottom: spacing.sm,
+  },
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
-  heading: {
+  brandHeading: {
     flex: 1,
+    alignItems: 'flex-start',
     gap: spacing.xxs,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
+  logo: {
+    width: 40.8,
+    height: 40.8,
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+  navIconBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'center',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 20,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  cartBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: BRAND_BG,
   },
   signOut: {
     paddingVertical: spacing.xs,
@@ -233,6 +283,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   ordersLink: {
     paddingVertical: spacing.xs,
@@ -241,52 +292,13 @@ const styles = StyleSheet.create({
   ordersText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
-  cartBtn: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-  },
-  cartIconBox: {
-    width: 30,
-    height: 26,
-    borderWidth: 1.5,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
-  },
-  cartHandle: {
-    position: 'absolute',
-    top: 3,
-    left: 5,
-    width: 18,
-    height: 8,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderTopLeftRadius: 5,
-    borderTopRightRadius: 5,
-  },
-  cartBasket: {
-    width: 18,
-    height: 12,
-    borderRadius: 2,
-  },
-  cartBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -5,
-    minWidth: 22,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+  body: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    paddingTop: spacing.md,
   },
   searchRow: {
     flexDirection: 'row',

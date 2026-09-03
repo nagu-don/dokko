@@ -20,6 +20,19 @@ const vendorSchema = new mongoose.Schema({
     hasSetLocation: {type:Boolean, default:false},
     isAvailable: {type:Boolean, default:true},
 
+    // ── LIVE location — for order tracking ────────────────────────────
+    // This is explicitly SEPARATE from the static `location` (working shop
+    // location used for geo-matching). It holds the vendor's latest reported
+    // GPS position + when it was received, and is only surfaced to a customer
+    // while the assigned order is still Processing (see the vendor
+    // live-location endpoint + customer read in the controllers). Null while
+    // the vendor is not actively tracking an order.
+    liveLocation: {
+        type: {type: String, enum: ["Point"], default: "Point"},
+        coordinates: {type: [Number], default: undefined},
+        updatedAt: {type: Date, default: null},
+    },
+
     // ── payout destination — for admin settlement ──────────────
     // live values; snapshotted into settlement records at creation
     payoutMethod: {type: String, enum: ["bank", null], default: null},

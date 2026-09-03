@@ -3,8 +3,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useVendorRequest } from '@/hooks/useVendorRequests';
-import { t, money, num, iname } from '@/i18n';
+import { useAcceptRequest, useVendorRequest } from '@/hooks/useVendorRequests';
+import { t, tMsg, money, num, iname } from '@/i18n';
 import { radius, spacing } from '@/theme';
 import { formatOrderDate } from '@/utils/date';
 import {
@@ -14,14 +14,20 @@ import {
 } from '@/utils/vendorModel';
 
 /**
- * Vendor request details (Phase 9). Resolved from the SAME shared
+ * Vendor request details (Phase 10). Resolved from the SAME shared
  * ['vendor','requests','new'] query as the dashboard so the request is never
  * fetched twice and refreshing on one screen refreshes both.
  *
- * Shows only the server-authoritative fields the vendor web app already
- * displays (customer name/phone, drop-off, item snapshot, amounts) plus the
- * server-computed distance/closest badge. Accepting/declining, payments and
- * settling are deliberately NOT part of this phase.
+ * Accept flow (server-authoritative, concurrency-safe):
+ *  - Tap Accept → PATCH /api/vendors/requests/accept/:id (no body)
+ *  - Backend atomically claims the order (vendor:null guard in findOneAndUpdate)
+ *  - Returns presentOrder with priorityStage=ASSIGNED, status=Processing
+ *  - On success: navigate to accepted/[id] with the order data
+ *  - On 409: "This request has already been taken" (another vendor won)
+ *  - On timeout/network failure: show "outcome uncertain" — do NOT retry
+ *
+ * Rejection does not exist as a backend endpoint. Orders time out via the
+ * priority scheduler. The vendor simply ignores unwanted requests.
  */
 export default function VendorRequestDetailScreen() {
   const { palette, lang } = useAppTheme();
@@ -31,6 +37,7 @@ export default function VendorRequestDetailScreen() {
   const requestId = typeof id === 'string' ? id : '';
 
   const { data: request, isLoading, isError, isRefetching, refetch } = useVendorRequest(requestId);
+  const acceptMutation = useAcceptRequest();
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -39,6 +46,30 @@ export default function VendorRequestDetailScreen() {
       router.replace('/dashboard');
     }
   };
+
+  const handleAccept = () => {
+    if (!requestId) return;
+    acceptMutation.mutate(requestId, {
+      onSuccess: (order) => {
+        router.replace({
+          pathname: '/accepted/[id]',
+          params: { id: order.id, orderJson: JSON.stringify(order) },
+        });
+      },
+      onError: () => {
+        // Error is displayed via acceptMutation.error below.
+        // The request list will be refetched on return to dashboard.
+      },
+    });
+  };
+
+  const acceptError = acceptMutation.error as
+    | { status?: number; message?: string; kind?: 'network' | 'timeout' | 'http' | 'unknown' }
+    | undefined;
+  const is409 = acceptError?.status === 409;
+  // Transport-level failure (no server response) → outcome UNKNOWN, never auto-retry.
+  const isUncertain =
+    acceptMutation.isError && !is409 && (acceptError?.kind === 'network' || acceptError?.kind === 'timeout');
 
   let content;
 
@@ -65,7 +96,7 @@ export default function VendorRequestDetailScreen() {
     content = (
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl + 70 }]}
       >
         {isError ? (
           <View style={[styles.inlineError, { backgroundColor: palette.surface, borderColor: palette.danger }]}>
@@ -220,6 +251,51 @@ export default function VendorRequestDetailScreen() {
         <View style={styles.topSpacer} />
       </View>
       {content}
+
+      {/* Accept / Error feedback — fixed at bottom */}
+      {request && (
+        <View style={[styles.bottomBar, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
+          {/* Error banners */}
+          {acceptMutation.isError ? (
+            <View style={[styles.errorBanner, { backgroundColor: palette.surface, borderColor: palette.danger }]}>
+              <Text style={[styles.errorBannerText, { color: palette.danger }]}>
+                {is409
+                  ? t(lang, 'vendorAcceptTaken')
+                  : isUncertain
+                    ? t(lang, 'vendorAcceptUncertain')
+                    : tMsg(lang, acceptError?.message) || t(lang, 'vendorAcceptError')}
+              </Text>
+              {isUncertain ? (
+                <Pressable
+                  onPress={() =>
+                    router.replace({
+                      pathname: '/accepted/[id]',
+                      params: { id: requestId },
+                    })
+                  }
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.recoverLink,
+                    { opacity: pressed ? 0.6 : 1 },
+                  ]}
+                >
+                  <Text style={[styles.recoverLinkText, { color: palette.primary }]}>
+                    {t(lang, 'vendorAcceptCheckAccepted')}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Accept button */}
+          <Button
+            title={acceptMutation.isPending ? t(lang, 'vendorAccepting') : t(lang, 'vendorAccept')}
+            onPress={handleAccept}
+            loading={acceptMutation.isPending}
+            disabled={acceptMutation.isPending}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -444,5 +520,34 @@ const styles = StyleSheet.create({
   },
   amountValue: {
     fontSize: 14,
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  errorBanner: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    padding: spacing.sm,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  recoverLink: {
+    paddingVertical: spacing.xs,
+    alignItems: 'center',
+  },
+  recoverLinkText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

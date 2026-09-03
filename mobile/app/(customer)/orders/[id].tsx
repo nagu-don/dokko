@@ -1,8 +1,10 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
+import { LiveTrackingMap } from '@/components/tracking';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMyOrder } from '@/hooks/useMyOrders';
 import { t, money, num } from '@/i18n';
@@ -122,6 +124,8 @@ export default function OrderDetailScreen() {
             </Text>
           </View>
         </View>
+
+        <LiveTrackingMap order={order} />
 
         <Section title={t(lang, 'itemSection')} palette={palette}>
           {order.items.map((item, idx) => (
@@ -250,23 +254,15 @@ export default function OrderDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'trackOrderTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar
+          title={t(lang, 'trackOrderTitle')}
+          onBack={handleBack}
+          backAriaLabel={t(lang, 'backAria')}
+        />
       </View>
-      {content}
+      <View style={styles.body}>{content}</View>
     </View>
   );
 }
@@ -345,33 +341,14 @@ function Section({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  navBar: {
     paddingBottom: spacing.sm,
   },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
+  body: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   scroll: {
     flex: 1,

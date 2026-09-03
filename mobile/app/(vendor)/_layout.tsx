@@ -21,6 +21,11 @@ export default function VendorLayout() {
       <Stack.Screen name="dashboard" options={{ title: 'Dokko Vendor' }} />
       <Stack.Screen name="onboarding" options={{ title: 'Set up' }} />
       <Stack.Screen name="requests/[id]" options={{ title: 'Request' }} />
+      <Stack.Screen name="accepted/[id]" options={{ title: 'Accepted order' }} />
+      <Stack.Screen name="collect/[id]" options={{ title: 'Collect payment' }} />
+      <Stack.Screen name="active/index" options={{ title: 'Active orders' }} />
+      <Stack.Screen name="completed/index" options={{ title: 'Completed orders' }} />
+      <Stack.Screen name="completed/[id]" options={{ title: 'Completed order' }} />
     </Stack>
   );
 }

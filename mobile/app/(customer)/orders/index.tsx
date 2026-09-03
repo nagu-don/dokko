@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OrderCard } from '@/components/order';
 import { LoadingView } from '@/components/LoadingView';
 import { Button } from '@/components/form';
+import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { t } from '@/i18n';
@@ -130,35 +131,28 @@ export default function OrderHistoryScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'myOrders')}
-        </Text>
-        {data && data.length > 0 ? (
-          <Pressable
-            onPress={() => refetch()}
-            accessibilityRole="button"
-            accessibilityLabel={t(lang, 'ordersRefreshAria')}
-            hitSlop={8}
-            style={({ pressed }) => [styles.refresh, { opacity: pressed ? 0.6 : 1 }]}
-          >
-            <Text style={[styles.refreshText, { color: palette.primary }]}>{t(lang, 'ordersRefresh')}</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.topSpacer} />
-        )}
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <View style={[styles.navBar, { backgroundColor: BRAND_BG, paddingTop: insets.top }]}>
+        <BrandTopBar
+          title={t(lang, 'myOrders')}
+          onBack={handleBack}
+          backAriaLabel={t(lang, 'backAria')}
+          right={
+            data && data.length > 0 ? (
+              <Pressable
+                onPress={() => refetch()}
+                accessibilityRole="button"
+                accessibilityLabel={t(lang, 'ordersRefreshAria')}
+                hitSlop={8}
+                style={({ pressed }) => [styles.refresh, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={styles.refreshText}>{t(lang, 'ordersRefresh')}</Text>
+              </Pressable>
+            ) : undefined
+          }
+        />
       </View>
-      {content}
+      <View style={styles.body}>{content}</View>
     </View>
   );
 }
@@ -192,33 +186,14 @@ function Section({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  navBar: {
     paddingBottom: spacing.sm,
   },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
+  body: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
   },
   refresh: {
     paddingVertical: spacing.xs,
@@ -228,6 +203,7 @@ const styles = StyleSheet.create({
   refreshText: {
     fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
   scroll: {
     flex: 1,

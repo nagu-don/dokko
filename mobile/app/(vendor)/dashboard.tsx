@@ -10,6 +10,8 @@ import {
   useUpdateVendorLocation,
   useVendorProfile,
   useVendorRequests,
+  useVendorAcceptedOrders,
+  useVendorCompletedOrders,
 } from '@/hooks/useVendorRequests';
 import { t, money, num, iname } from '@/i18n';
 import { useAuthStore } from '@/stores/authStore';
@@ -40,6 +42,8 @@ export default function VendorDashboardScreen() {
 
   const profileQuery = useVendorProfile();
   const requestsQuery = useVendorRequests();
+  const activeOrdersQuery = useVendorAcceptedOrders();
+  const completedOrdersQuery = useVendorCompletedOrders();
   const locationMutation = useUpdateVendorLocation();
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -47,6 +51,8 @@ export default function VendorDashboardScreen() {
 
   const profile = profileQuery.data;
   const requests = requestsQuery.data ?? [];
+  const activeOrders = activeOrdersQuery.data ?? [];
+  const completedOrders = completedOrdersQuery.data ?? [];
 
   const handleSignOut = async () => {
     await logout();
@@ -233,6 +239,46 @@ export default function VendorDashboardScreen() {
             ))}
           </>
         )}
+
+        <View style={styles.sectionHead}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>
+            {t(lang, 'vendorOrdersDashboardSection')}
+          </Text>
+        </View>
+
+        <View style={styles.ordersRow}>
+          <Pressable
+            onPress={() => router.push('/active')}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.orderNavCard,
+              { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Text style={[styles.orderNavTitle, { color: palette.text }]}>
+              {t(lang, 'vendorOrdersDashboardActive')}
+            </Text>
+            <Text style={[styles.orderNavCount, { color: palette.textMuted }]}>
+              {t(lang, 'vendorOrdersDashboardActiveCount', { count: num(lang, activeOrders.length) })}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/completed')}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.orderNavCard,
+              { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Text style={[styles.orderNavTitle, { color: palette.text }]}>
+              {t(lang, 'vendorOrdersDashboardCompleted')}
+            </Text>
+            <Text style={[styles.orderNavCount, { color: palette.textMuted }]}>
+              {t(lang, 'vendorOrdersDashboardCompletedCount', { count: num(lang, completedOrders.length) })}
+            </Text>
+          </Pressable>
+        </View>
 
         <Text style={[styles.externalNote, { color: palette.textMuted }]}>
           {t(lang, 'vendorExternalNote')}
@@ -485,6 +531,24 @@ const styles = StyleSheet.create({
   moreItems: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  ordersRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  orderNavCard: {
+    flex: 1,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    padding: spacing.md,
+    gap: spacing.xxs,
+  },
+  orderNavTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  orderNavCount: {
+    fontSize: 12,
   },
   externalNote: {
     fontSize: 12,

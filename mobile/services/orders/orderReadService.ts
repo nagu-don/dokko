@@ -1,5 +1,12 @@
 import { api, ApiError, getServerMessage } from '@/services/api';
-import type { OrderListResponse, OrderRead, OrderReadItem, OrderVendorRef } from '@/types';
+import type {
+  ApiEnvelope,
+  OrderListResponse,
+  OrderRead,
+  OrderReadItem,
+  OrderVendorRef,
+  OrderVendorLocationResponse,
+} from '@/types';
 
 /**
  * Customer order reading — GET /api/orders/my (authUser).
@@ -28,6 +35,69 @@ export async function getMyOrders(): Promise<OrderRead[]> {
   }
 
   return data.data.map(normalizeOrder);
+}
+
+/**
+ * Read the assigned vendor's LIVE location for one of my orders.
+ * GET /api/orders/:orderId/vendor-location (authUser, ownership-enforced).
+ *
+ * Verified backend contract (back-end/controllers/orderController.js
+ * getOrderVendorLocation): `{ success, data: { tracking, vendor?, location } }`.
+ *  - `tracking` is true ONLY while the order is Processing and assigned.
+ *  - `location.lat/lng/+lastUpdatedAt` come from the vendor's dedicated
+ *    `liveLocation` field (never the static working `location`).
+ *  - 403 for another customer's order, 404 for a missing order.
+ */
+export async function getOrderVendorLocation(
+  orderId: string
+): Promise<OrderVendorLocationResponse> {
+  const { data } = await api.get<
+    ApiEnvelope<OrderVendorLocationResponse> | undefined
+  >(`/api/orders/${encodeURIComponent(orderId)}/vendor-location`);
+
+  if (!data || data.success !== true || !data.data || typeof data.data !== 'object') {
+    throw new ApiError(getServerMessage(data, 'Failed to load vendor location'), {
+      payload: data,
+      status: data?.success === false ? 403 : 500,
+      kind: 'http',
+    });
+  }
+
+  return normalizeVendorLocation(data.data);
+}
+
+function normalizeVendorLocation(raw: unknown): OrderVendorLocationResponse {
+  const d = (raw && typeof raw === 'object' ? raw : {}) as Partial<OrderVendorLocationResponse>;
+  const tracking = d.tracking === true;
+
+  let location: OrderVendorLocationResponse['location'] = null;
+  const loc = d.location;
+  if (loc && typeof loc === 'object') {
+    const lat = Number((loc as { lat?: unknown }).lat);
+    const lng = Number((loc as { lng?: unknown }).lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      location = {
+        lat,
+        lng,
+        lastUpdatedAt:
+          (loc as { lastUpdatedAt?: unknown }).lastUpdatedAt == null
+            ? null
+            : String((loc as { lastUpdatedAt?: unknown }).lastUpdatedAt),
+      };
+    }
+  }
+
+  let vendor: OrderVendorLocationResponse['vendor'] = null;
+  const v = d.vendor;
+  if (v && typeof v === 'object') {
+    const id = typeof (v as { id?: unknown }).id === 'string' ? (v as { id: string }).id : '';
+    vendor = {
+      id,
+      name: typeof (v as { name?: unknown }).name === 'string' ? (v as { name: string }).name : undefined,
+    };
+  }
+
+  return { tracking, vendor, location };
 }
 
 /** Best-effort normalization of a raw mongoose order doc into OrderRead. */

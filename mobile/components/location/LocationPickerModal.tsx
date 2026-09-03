@@ -8,7 +8,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import MapView, { type Region } from 'react-native-maps';
+import {
+  Map,
+  Camera,
+  UserLocation,
+  type MapRef,
+  type CameraRef,
+  type StyleSpecification,
+} from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
@@ -23,9 +30,13 @@ import type { Dropoff } from '@/types';
  *
  * Mirrors the web LocationPicker's core interaction: a fixed crosshair/pin at
  * the CENTRE of the map — the user moves the map underneath it and confirms,
- * so the chosen spot is always the current map centre. This avoids the Google
- * marker/AddressPicker ceremony entirely and keeps the payload identical to
- * the web (`{ lat, lng, label? }`).
+ * so the chosen spot is always the current map centre. This avoids the marker
+ * ceremony entirely and keeps the payload identical to the web
+ * (`{ lat, lng, label? }`).
+ *
+ * Rendered with MapLibre React Native against the same OpenStreetMap raster
+ * provider the web picker uses (`tile.openstreetmap.org`, © OpenStreetMap
+ * contributors) — no Google Maps, no API key.
  *
  * Permissions are handled explicitly: undetermined -> system prompt; denied ->
  * localized message (map still usable for manual picking); services off ->
@@ -33,14 +44,44 @@ import type { Dropoff } from '@/types';
  * spot as the next checkout's preferred drop-off point.
  */
 
+const MAP_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm' }],
+};
+
 const KT_ZOOM_DELTA = 0.08;
 const GPS_ZOOM_DELTA = 0.008;
 
-function regionFrom(lat: number, lng: number, delta: number = GPS_ZOOM_DELTA): Region {
-  return { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta };
+/**
+ * MapLibre frames the viewport by a z-level (zoom), not a lat/lng delta.
+ * Apprximate delta -> zoom so the Kathmandu (0.08 -> ~12.1, matching the web
+ * default of 12) and GPS (0.008 -> ~15.5, matching the web locate of 16)
+ * framings stay faithful to the previous react-native-maps behaviour.
+ */
+function deltaToZoom(delta: number): number {
+  return Math.log2(360 / delta);
 }
 
-const KATHMANDU: Region = regionFrom(27.7172, 85.324, KT_ZOOM_DELTA);
+interface PickerRegion {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+}
+
+function regionFrom(lat: number, lng: number, delta: number = GPS_ZOOM_DELTA): PickerRegion {
+  return { latitude: lat, longitude: lng, zoom: deltaToZoom(delta) };
+}
+
+const KATHMANDU: PickerRegion = regionFrom(27.7172, 85.324, KT_ZOOM_DELTA);
 
 interface LocationPickerModalProps {
   visible: boolean;
@@ -71,14 +112,30 @@ export function LocationPickerModal({
   const { palette, lang } = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
   const initialRef = useRef<Dropoff | null>(null);
 
-  const [region, setRegion] = useState<Region>(KATHMANDU);
+  const [region, setRegion] = useState<PickerRegion>(KATHMANDU);
   const [note, setNote] = useState('');
   const [gpsNote, setGpsNote] = useState('');
   const [locating, setLocating] = useState(false);
   const [userLocVisible, setUserLocVisible] = useState(false);
+
+  const moveTo = (target: PickerRegion, animated: boolean) => {
+    if (animated) {
+      cameraRef.current?.easeTo({
+        center: [target.longitude, target.latitude],
+        zoom: target.zoom,
+        duration: 400,
+      });
+    } else {
+      cameraRef.current?.jumpTo({
+        center: [target.longitude, target.latitude],
+        zoom: target.zoom,
+      });
+    }
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -86,7 +143,13 @@ export function LocationPickerModal({
     setNote(initial?.label ?? '');
     setGpsNote('');
     setUserLocVisible(false);
-    setRegion(initial ? regionFrom(initial.lat, initial.lng, GPS_ZOOM_DELTA) : KATHMANDU);
+
+    const target = initial
+      ? regionFrom(initial.lat, initial.lng, GPS_ZOOM_DELTA)
+      : KATHMANDU;
+    setRegion(target);
+    moveTo(target, false);
+
     // Like the web picker, offer the device GPS when there is no preset.
     if (!initial) {
       void requestAndLocate();
@@ -119,7 +182,7 @@ export function LocationPickerModal({
       const { latitude, longitude } = position.coords;
       const target = regionFrom(latitude, longitude, GPS_ZOOM_DELTA);
       setRegion(target);
-      mapRef.current?.animateToRegion(target, 400);
+      moveTo(target, true);
       setUserLocVisible(true);
       setGpsNote('');
     } catch {
@@ -170,15 +233,26 @@ export function LocationPickerModal({
         </View>
 
         <View style={styles.mapWrap}>
-          <MapView
+          <Map
             ref={mapRef}
             style={StyleSheet.absoluteFill}
-            region={region}
-            onRegionChangeComplete={setRegion}
-            showsUserLocation={userLocVisible}
-            showsMyLocationButton={false}
-            showsCompass={false}
-          />
+            mapStyle={MAP_STYLE}
+            onRegionDidChange={(event) => {
+              const [lng, lat] = event.nativeEvent.center;
+              setRegion((prev) => ({
+                latitude: lat,
+                longitude: lng,
+                zoom: event.nativeEvent.zoom ?? prev.zoom,
+              }));
+            }}
+            scaleBar={false}
+            compass={false}
+            touchRotate={false}
+            touchPitch={false}
+          >
+            <Camera ref={cameraRef} initialViewState={{ center: [region.longitude, region.latitude], zoom: region.zoom }} />
+            {userLocVisible ? <UserLocation /> : null}
+          </Map>
           <View pointerEvents="none" style={styles.pin}>
             <View style={[styles.pinDot, { backgroundColor: palette.primary }]} />
           </View>
