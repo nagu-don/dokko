@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t, money, num } from '@/i18n';
 import { radius, spacing } from '@/theme';
 import type { OrderRead } from '@/types';
 import { formatOrderDate } from '@/utils/date';
+import { isKgUnit } from '@/utils/itemDisplay';
 import {
   isSearching,
   orderBucket,
@@ -22,7 +24,9 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
   const { palette, lang } = useAppTheme();
   const bucket = orderBucket(order);
   const itemCount = order.items?.length ?? 0;
+  const allKg = (order.items ?? []).every((i) => isKgUnit(i));
   const totalKg = order.totalQuantity ?? 0;
+  const allKgSummary = allKg && itemCount > 0;
   const searching = isSearching(order);
   const sub = order.subtotal ?? 0;
 
@@ -72,7 +76,7 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
 
       <View style={styles.metaRow}>
         <Text style={[styles.meta, { color: palette.textMuted }]}>
-          {t(lang, 'orderItemsSummary', {
+          {t(lang, allKgSummary ? 'orderItemsSummary' : 'orderItemsCount', {
             count: num(lang, itemCount),
             kg: num(lang, (totalKg || 0).toFixed(1)),
           })}
@@ -104,7 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pillText: {
     fontSize: 12,

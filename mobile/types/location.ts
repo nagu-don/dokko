@@ -4,11 +4,21 @@ export interface LatLng {
   lng: number;
 }
 
-/** Dropoff target accepted by POST /api/orders/place. */
+/**
+ * Dropoff target accepted by POST /api/orders/place.
+ *  - `label` is the NOTE the customer writes "for the vendor" — this is the
+ *    single string that travels to the order and is shown to the vendor.
+ *  - `name` is an optional friendly label the customer keeps for themselves
+ *    (e.g. "Home") and is shown only in their own settings, never sent with
+ *    the order.
+ */
 export interface Dropoff {
   lat: number;
   lng: number;
+  /** Note for the vendor — this is what the vendor sees. */
   label?: string;
+  /** Customer-facing friendly name (local only, not sent to the vendor). */
+  name?: string;
 }
 
 /**

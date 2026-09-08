@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { buildImageUrl } from '@/config/env';
 import { useAppTheme } from '@/hooks/useAppTheme';

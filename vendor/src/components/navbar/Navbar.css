@@ -31,6 +31,11 @@
   --accent-bg: rgba(240, 180, 0, 0.16);
 }
 
+.vendor-navbar.theme-purple {
+  --accent: #722ed1;
+  --accent-bg: rgba(114, 46, 209, 0.12);
+}
+
 .vendor-navbar .brand {
   display: flex;
   flex-direction: column;

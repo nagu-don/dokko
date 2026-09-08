@@ -125,6 +125,8 @@ const ManageAdmins = ({ url }) => {
       update_order: t('actionUpdateOrder'),
       create_settlement: t('actionCreateSettlement'),
       update_settings: t('actionUpdateSettings'),
+      post_notice: t('actionPostNotice'),
+      delete_notice: t('actionDeleteNotice'),
       other: t('actionOther'),
     }
     return labels[action] || action

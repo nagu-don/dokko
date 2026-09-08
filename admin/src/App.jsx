@@ -8,6 +8,7 @@ import Add from './pages/Add/Add'
 import Orders from './pages/Orders/Orders'
 import Users from './pages/Users/Users'
 import Vendors from './pages/Vendors/Vendors'
+import Notices from './pages/Notices/Notices'
 import Settlements from './pages/Settlements/Settlements'
 import AdminRequests from './pages/AdminRequests/AdminRequests'
 import ManageAdmins from './pages/ManageAdmins/ManageAdmins'
@@ -47,6 +48,7 @@ function App() {
           <Route path='/orders' element={<Orders url={url}/>}/>
           <Route path='/users' element={<Users url={url}/>}/>
           <Route path='/vendors' element={<Vendors url={url}/>}/>
+          <Route path='/notices' element={<Notices url={url}/>}/>
           <Route path='/settlements' element={<Settlements url={url}/>}/>
           <Route path='/admin-requests' element={<AdminRequests url={url}/>}/>
           <Route path='/manage-admins' element={<ManageAdmins url={url}/>}/>

@@ -1,6 +1,6 @@
 import orderModel from "../models/orderModel.js";
 import { findEligibleVendors, nextStage } from "./geoVendorMatcher.js";
-import { PRIORITY_DELIVERY_CHARGES, STAGE_DURATION_MS } from "../config/priorityConfig.js";
+import { deliveryChargeForKm, STAGE_DURATION_MS } from "../config/priorityConfig.js";
 
 const SEARCHING_STAGES = ["SEARCHING_0_5KM", "SEARCHING_1KM", "SEARCHING_CLOSEST"];
 
@@ -81,7 +81,15 @@ export const advanceStage = async (order) => {
       },
     };
 
-    if (vendors.length > 0) {
+    // SEARCHING_CLOSEST is the FINAL searching stage: it has no window and
+    // is never advanced again by the scheduler (see priorityScheduler.js),
+    // so it must NOT carry a priorityExpiresAt. If it did, listNewRequests
+    // (`priorityExpiresAt: null` OR `> now`) would hide the order forever
+    // once that window elapsed, even though the closest vendor is still
+    // waiting to accept. Only stages 1/2 get a bounded 60s window.
+    const isFinalStage = targetStage === "SEARCHING_CLOSEST";
+
+    if (vendors.length > 0 && !isFinalStage) {
       update.$set.priorityExpiresAt = new Date(now.getTime() + STAGE_DURATION_MS);
     } else {
       update.$set.priorityExpiresAt = null;
@@ -104,8 +112,9 @@ export const advanceStage = async (order) => {
 
 // ── assign a vendor to an order ─────────────────────────────────
 // Called when a vendor accepts.  Atomically claims the order and
-// sets the delivery charge based on the stage at which acceptance
-// occurred.
+// sets the delivery charge for the distance between the vendor and
+// the customer's drop-off (banded tariff, see priorityConfig.js).
+// Acceptances beyond DELIVERY_MAX_KM are refused (charge null).
 //
 // Uses a findOneAndUpdate with a stage guard so that two
 // simultaneous accept requests cannot both succeed — only the
@@ -113,10 +122,11 @@ export const advanceStage = async (order) => {
 //
 // @param {string}  orderId
 // @param {string}  vendorId
-// @param {string}  stage        — the priority stage at the moment of accept
+// @param {number}  distanceKm  — distance from the vendor to the drop-off
 // @returns {Promise<Object|null>} — the updated order, or null if already taken
-export const assignVendor = async (orderId, vendorId, stage) => {
-  const deliveryCharge = PRIORITY_DELIVERY_CHARGES[stage] ?? 50;
+export const assignVendor = async (orderId, vendorId, distanceKm) => {
+  const deliveryCharge = deliveryChargeForKm(distanceKm);
+  if (deliveryCharge === null) return null;
 
   const updated = await orderModel.findOneAndUpdate(
     {

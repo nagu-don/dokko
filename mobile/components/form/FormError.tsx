@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { spacing, radius } from '@/theme';
 

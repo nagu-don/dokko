@@ -111,9 +111,10 @@ export const np = {
   increaseAria: '{name} बढाउनुहोस्',
   decreaseAria: '{name} घटाउनुहोस्',
   removeItemAria: 'कार्टबाट {name} हटाउनुहोस्',
-  quantityInputAria: '{name} को परिमाण (केजीमा)',
+  quantityInputAria: '{name} को परिमाण ({unit}मा)',
   openCartAria: 'कार्ट खोल्नुहोस्',
   subtotalWithCount: 'उप-जम्मा ({qty} केजी)',
+  subtotalWithItems: 'उप-जम्मा ({count} वस्तुहरू)',
   checkoutNote: 'विक्रेताले अर्डर स्वीकारेपछि डेलिभरी शुल्क थपिन्छ।',
   goToCheckout: 'चेकआउटमा जानुहोस्',
   proceedWithOrder: 'अर्डर अगाडि बढाउनुहोस्',
@@ -126,6 +127,7 @@ export const np = {
   themeDark: 'अँध्यारो',
   preferredDropoff: 'मनपर्ने डेलिभरी स्थान',
   changeOnMap: 'नक्सामा फेर्नुहोस्',
+  addNewLocation: 'नयाँ स्थान थप्नुहोस्',
   notSet: 'सेट गरिएको छैन',
   selectPreferredTitle: 'आफ्नो मनपर्ने डेलिभरी स्थान छान्नुहोस्',
 
@@ -156,6 +158,8 @@ export const np = {
   locationDenied: 'तपाईंको स्थान प्रयोग गर्न अनुमति दिइएन। नक्सा सारेर ठाउँ छान्न सक्नुहुन्छ वा सेटिङ्समा गएर स्थान सक्षम गर्नुहोस्।',
   locationServicesOff: 'लोकेशन बन्द छ। आफ्नो स्थान प्रयोग गर्न लोकेशन अन गर्नुहोस्।',
   locationFetchFailed: 'अहिले तपाईंको स्थान लिन सकिएन। बरु नक्सा सारेर ठाउँ छान्नुहोस्।',
+  locationNameLabel: 'यस स्थानको नाम सेभ गर्नुहोस् (वैकल्पिक)',
+  locationNamePlaceholder: 'जस्तै: घर, अफिस',
   locationNoteLabel: 'विक्रेताका लागि टिप्पणी (वैकल्पिक)',
   locationNotePlaceholder: 'जस्तै: निलो गेट नजिक',
   confirmLocation: 'स्थान पुष्टि गर्नुहोस्',
@@ -192,6 +196,7 @@ export const np = {
   pastOrders: 'पूरा भएका अर्डरहरू',
   orderPlacedAt: '{date} मा राखिएको',
   orderItemsSummary: '({count} सामान · {kg} केजी)',
+  orderItemsCount: '({count} सामान)',
   orderSubtotal: 'उप-जम्मा',
   orderDelivery: 'डेलिभरी',
   orderAdditionalCharges: 'सेवा शुल्क',
@@ -223,7 +228,7 @@ export const np = {
   stageSearchingWide: 'फराकिलो क्षेत्रमा खोज्दै…',
   stageFindingClosest: 'नजिकको उपलब्ध विक्रेता खोज्दै…',
   stageAssigned: 'विक्रेता तोकियो',
-  stageNoVendor: 'कुनै विक्रेता उपलब्ध छैन',
+  stageNoVendor: 'तपाईंको अनुरोधको लागि कुनै विक्रेता उपलब्ध छैन',
   stageSearching: 'विक्रेता खोज्दै…',
 
   // order buckets (UI grouping)
@@ -351,7 +356,7 @@ export const np = {
   orderPaymentView: 'भुक्तानी हेर्नुहोस्',
 
   // vendor dashboard / onboarding (Phase 9)
-  vendorDashboardTitle: 'डोक्को विक्रेता',
+  vendorDashboardTitle: 'नयाँ अनुरोध',
   vendorSignInAs: '{name} को रूपमा प्रवेश',
   vendorReadyPill: 'अनुरोधका लागि तयार',
   vendorNotReadyPill: 'सेटअप आवश्यक',
@@ -362,7 +367,6 @@ export const np = {
   vendorAvailabilityNote:
     'तपाईंको स्थानसँगै स्वतः व्यवस्थापन हुन्छ — यो एपमा अनलाइन/अफलाइन स्विच अहिले छैन।',
   vendorDistanceUnit: '{km} किमि टाढा',
-  vendorClosestBadge: 'नजिकको विक्रेता',
   vendorRequestsSection: 'नयाँ अनुरोधहरू',
   vendorRequestsCount: '{count} उपलब्ध',
   vendorNoRequests: 'कुनै अनुरोध उपलब्ध छैन',
@@ -375,7 +379,6 @@ export const np = {
   vendorRefresh: 'ताजा गर्नुहोस्',
   vendorLocationSaveError: 'तपाईंको स्थान सुरक्षित गर्न सकिएन। फेरि प्रयास गर्नुहोस्।',
   vendorProfileError: 'तपाईंको प्रोफाइल लोड गर्न सकिएन। फेरि प्रयास गर्नुहोस्।',
-  vendorExternalNote: 'अहिलेका लागि अर्डरहरू पसलको स्क्रिनबाट स्वीकार गरिन्छ।',
 
   vendorOnboardingTitle: 'तपाईं कहाँबाट व्यापार गर्नुहुन्छ?',
   vendorOnboardingHint1: 'नजिकका ग्राहकका अर्डर तपाईंसम्म आइपुगोस् भनी काम गर्ने स्थान सेट गर्नुहोस्।',
@@ -386,6 +389,20 @@ export const np = {
   vendorGoToDashboard: 'ड्यासबोर्डमा जानुहोस्',
   vendorSetLocationTitle: 'तपाईंको काम गर्ने स्थान सेट गर्नुहोस्',
   vendorSetLocationHint: 'कहाँ अनुरोध पाउन चाहनुहुन्छ? पिन त्यहीँ पुग्ने गरी नक्सा सार्नुहोस्।',
+
+  // vendor settings (mirror vendor/src/components/settings)
+  vendorSettingsPayout: 'भुक्तानी विधि',
+  vendorSettingsPayoutNotSet: 'सेट गरिएको छैन',
+  vendorSettingsChangePayout: 'परिवर्तन गर्नुहोस्',
+  vendorSettingsBankAccount: 'बैंक खाता',
+  vendorSettingsAccountHolder: 'खाता धारकको नाम',
+  vendorSettingsBankName: 'बैंकको नाम',
+  vendorSettingsAccountNumber: 'खाता नम्बर',
+  vendorSettingsSavePayout: 'सुरक्षित गर्नुहोस्',
+  vendorSettingsPayoutUpdated: 'भुक्तानी जानकारी अपडेट भयो',
+  vendorSettingsWorkingLocation: 'काम गर्ने स्थान',
+  vendorSettingsPayoutNotSetOnboarding: 'अझै भुक्तानी सेट गरिएको छैन',
+  vendorSettingsGoToDashboard: 'ड्यासबोर्डमा जानुहोस्',
 
   // vendor request list + details
   vendorRequestDetailTitle: 'अनुरोध विवरण',
@@ -422,6 +439,15 @@ export const np = {
   vendorAcceptedNotAssigned: 'यो अर्डर तपाईंलाई तोकिएको छैन।',
   vendorAcceptedSuccess: 'यो अर्डर अब तपाईंलाई तोकिएको छ।',
   vendorAcceptedAt: 'स्वीकार गरियो',
+
+  // vendor navigation (accepted order — "Show in map")
+  showInMap: 'नक्सामा देखाउनुहोस्',
+  vendorNavTitle: '{code} — डेलिभरी स्थान',
+  navFromGps: 'तपाईंको GPS स्थानबाट',
+  navFromSaved: 'सुरक्षित काम गर्ने स्थानबाट',
+  navDistanceEta: '{km} कि.मि. · ~{min} मिनेट',
+  navDistanceToDropoff: 'डेलिभरी स्थानसम्म {km} कि.मि.',
+  navRecenter: 'आफ्नो स्थानमा पुन: केन्द्रित गर्नुहोस्',
   vendorAcceptedNextSteps:
     'ग्राहकबाट भुक्तानी सङ्कलन गर्नुहोस्, त्यसपछि डेलिभरी पूरा भएको छ भन्नुहोस्।',
 
@@ -508,7 +534,8 @@ export const np = {
   errVendorLocationUpdate: 'स्थान अद्यावधिक गर्न सकिएन',
   errVendorRequests: 'अनुरोधहरू लोड गर्न सकिएन',
 
-  // vendor active + completed orders (Phase 13)
+  // vendor accepted orders — one screen for active + completed (Phase 13)
+  vendorAcceptedOrdersTitle: 'स्वीकृत अर्डरहरू',
   vendorActiveOrdersTitle: 'चालु अर्डरहरू',
   vendorActiveOrdersEmptyTitle: 'कुनै चालु अर्डर छैन',
   vendorActiveOrdersEmptyHint: 'स्वीकार गर्नुभएका अर्डरहरू डेलिभरी पूरा नभएसम्म यहाँ देखिन्छन्।',
@@ -519,11 +546,6 @@ export const np = {
   vendorCompletedOrdersEmptyHint: 'डेलिभर गर्नुभएका अर्डरहरू तपाईंको इतिहासमा यहाँ देखिनेछन्।',
   vendorCompletedOrdersErrorTitle: 'पूरा भएका अर्डरहरू लोड गर्न सकिएन',
   vendorCompletedOrdersErrorHint: 'कनेक्सन जाँच गरी फेरि प्रयास गर्नुहोस्। सर्भरमा केही परिवर्तन भएको छैन।',
-  vendorOrdersDashboardSection: 'अर्डरहरू',
-  vendorOrdersDashboardActive: 'चालु अर्डरहरू',
-  vendorOrdersDashboardActiveCount: '{count} चालु',
-  vendorOrdersDashboardCompleted: 'पूरा भएका अर्डरहरू',
-  vendorOrdersDashboardCompletedCount: '{count} पूरा भयो',
   vendorOrderActiveStage: 'चालु',
   vendorOrderDeliveredStage: 'डेलिभर भयो',
   vendorOrderPaidPayment: 'भुक्तानी: {status}',
@@ -531,4 +553,29 @@ export const np = {
   vendorOrderCompletedOn: '{date} मा पूरा भयो',
   vendorOrderDetailTitle: 'अर्डर विवरण',
   vendorOrderNotFoundHint: 'यो अर्डर फेला परेन।',
+
+  // vendor items needed
+  vendorItemsNeededTitle: 'आवश्यक सामान',
+  vendorItemsNeededEmptyTitle: 'खुला अर्डर छैन',
+  vendorItemsNeededEmptyHint: 'तपाईंको स्वीकार गरिएका अर्डरबाट सामान यहाँ देखिनेछ।',
+  vendorItemsNeededErrorTitle: 'सामान लोड गर्न सकिएन',
+  vendorItemsNeededErrorHint: 'कनेक्सन जाँच गरी फेरि प्रयास गर्नुहोस्।',
+  vendorItemsItemCol: 'सामान',
+  vendorItemsQtyCol: 'मात्रा',
+  vendorItemsPriceCol: 'प्रति एकाइ मूल्य',
+  vendorItemsTotalCol: 'जम्मा',
+  vendorItemsGrandTotal: 'कुल जम्मा',
+  vendorItemsSelected: '{count} छानिएको',
+  vendorItemsOk: 'प्राप्त भयो गर्नुहोस्',
+  vendorItemsOkSuccess: 'सामान प्राप्त भयो गरियो',
+  vendorItemsOkError: 'सामान गर्न सकिएन',
+  vendorItemsNoSelection: 'कम्तीमा एक सामान छान्नुहोस्',
+
+  // vendor notices
+  vendorNoticesTitle: 'सूचनाहरू',
+  vendorNoNoticesTitle: 'अहिलेसम्म कुनै सूचना छैन',
+  vendorNoNoticesHint: 'डोक्कोका घोषणाहरू यहाँ देखिनेछन्।',
+  vendorLoadFailedNotices: 'सूचनाहरू लोड गर्न सकिएन',
+  vendorLoadFailedNoticesHint: 'कनेक्सन जाँच गरी फेरि प्रयास गर्नुहोस्।',
+  vendorNoticePostedOn: '{date} मा पोस्ट गरियो',
 };

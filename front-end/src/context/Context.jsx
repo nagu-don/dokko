@@ -5,11 +5,24 @@ import { toNe } from "../utils/nepaliNumbers";
 
 export const Context = createContext(null);
 
-// default stepper increment in kg — change this one line to use 0.5 or 1 kg steps
+// default stepper increment for weight-based (kg) items
 export const STEP = 0.1;
 
-// coarse increment used by double-click and press-and-hold
+// coarse increment used by double-click and press-and-hold (1 kg / 1 unit)
 export const BULK_STEP = 1;
+
+// weight-based items ("kg", default) step in 0.1/1 kg; count-based items
+// (dozen, per piece, L, ...) step in whole units
+export const isKgUnit = (item) => {
+  const u = String(item?.unitEng || item?.unitNep || "kg").trim().toLowerCase();
+  return (
+    u === "" || u === "kg" || u === "kilogram" || u === "kilo" ||
+    u === "किलो" || u === "के.जी." || u === "केजी"
+  );
+};
+
+export const qtySteps = (item) =>
+  isKgUnit(item) ? { fine: STEP, bulk: BULK_STEP } : { fine: 1, bulk: 1 };
 
 // avoids float drift: 0.1 + 0.2 -> 0.3, not 0.30000000000000004
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -19,7 +32,7 @@ const ContextProvider = (props) => {
 
     const [items, setItems] = useState([]);
 
-    // cart shape: { "itemId": quantityInKg, ... }
+    // cart shape: { "itemId": quantity, ... } — quantity is in the item's own unit
     // loaded from localStorage so the cart survives page refresh
     const [cartItems, setCartItems] = useState(() => {
         try {
@@ -35,19 +48,22 @@ const ContextProvider = (props) => {
         localStorage.setItem("cartItems", JSON.stringify(cartItems));
     }, [cartItems]);
 
-    // "+0.1 kg" by default — also puts the item in the cart if it wasn't there
-    const addToCart = (itemId, amount = STEP) => {
+    // adds the item's fine step by default (0.1 kg / 1 unit) — also puts the
+    // item in the cart if it wasn't there
+    const addToCart = (itemId, amount) => {
+        const step = amount ?? qtySteps(items.find((i) => i._id === itemId)).fine;
         setCartItems((prev) => ({
             ...prev,
-            [itemId]: round1((prev[itemId] || 0) + amount),
+            [itemId]: round1((prev[itemId] || 0) + step),
         }));
     };
 
-    // "-0.1 kg" by default — when it reaches 0 the item leaves the cart
-    const decreaseQuantity = (itemId, amount = STEP) => {
+    // "-0.1 kg / -1 unit" by default — when it reaches 0 the item leaves the cart
+    const decreaseQuantity = (itemId, amount) => {
+        const step = amount ?? qtySteps(items.find((i) => i._id === itemId)).fine;
         setCartItems((prev) => {
             if (!prev[itemId]) return prev;
-            const newQty = round1(prev[itemId] - amount);
+            const newQty = round1(prev[itemId] - step);
             if (newQty <= 0) {
                 const updated = { ...prev };
                 delete updated[itemId];
@@ -59,7 +75,9 @@ const ContextProvider = (props) => {
 
     // used by the typed input — accepts a string or a number
     const setQuantity = (itemId, value) => {
-        const num = round1(Number(value));
+        const item = items.find((i) => i._id === itemId);
+        let num = round1(Number(value));
+        if (!isKgUnit(item)) num = Math.round(num); // count units are whole numbers
         setCartItems((prev) => {
             // empty / invalid / zero removes the item from the cart
             if (!Number.isFinite(num) || num <= 0) {
@@ -83,9 +101,22 @@ const ContextProvider = (props) => {
     // empties the whole cart (used after a successful checkout)
     const clearCart = () => setCartItems({});
 
-    // total kg across the whole cart (useful for a cart badge / summary)
+    // total quantity across the whole cart (only meaningful for all-kg carts)
     const getCartTotalQuantity = () => {
         return round1(Object.values(cartItems).reduce((sum, qty) => sum + qty, 0));
+    };
+
+    // true when every line is a weight-based item
+    const isCartAllKg = () =>
+        Object.keys(cartItems).every((id) => isKgUnit(items.find((i) => i._id === id)));
+
+    // cart badge: total kg for all-kg carts, otherwise the line count
+    const getCartBadge = () => {
+        const ids = Object.keys(cartItems);
+        if (ids.length === 0) return 0;
+        return isCartAllKg()
+            ? round1(ids.reduce((sum, id) => sum + (cartItems[id] || 0), 0))
+            : ids.length;
     };
 
     const getList = async () => {
@@ -180,6 +211,13 @@ const ContextProvider = (props) => {
     const iname = (item) =>
         lang === "np" && item?.nameNep ? item.nameNep : item?.nameEng;
 
+    // item units follow the language, falling back to the other language,
+    // then to the generic unit label when the view has no unit (order rows)
+    const iunit = (item) => {
+        const unit = lang === "np" ? item?.unitNep || item?.unitEng : item?.unitEng || item?.unitNep;
+        return unit || t("unitKg");
+    };
+
     useEffect(() => {
         getList();
     }, []);
@@ -193,7 +231,11 @@ const ContextProvider = (props) => {
         setQuantity,
         removeItemCompletely,
         clearCart,
+        isKgUnit,
+        qtySteps,
+        isCartAllKg,
         getCartTotalQuantity,
+        getCartBadge,
         searchQuery,
         setSearchQuery,
         activeSearch,
@@ -213,6 +255,7 @@ const ContextProvider = (props) => {
         money,
         num,
         iname,
+        iunit,
     };
 
     return (

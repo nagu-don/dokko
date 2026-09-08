@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
 import { LoadingView } from '@/components/LoadingView';
+import { VendorNavBar } from '@/components/vendor';
 import { LocationPickerModal } from '@/components/location';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import {
@@ -11,7 +13,7 @@ import {
   useVendorProfile,
 } from '@/hooks/useVendorRequests';
 import { t } from '@/i18n';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import { isVendorReady } from '@/utils/vendorModel';
 
 /**
@@ -67,7 +69,8 @@ export default function VendorOnboardingScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <VendorNavBar title={t(lang, 'vendorOnboardingTitle')} hideMenu />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
@@ -111,6 +114,7 @@ export default function VendorOnboardingScreen() {
         title={t(lang, 'vendorSetLocationTitle')}
         hint={t(lang, 'vendorSetLocationHint')}
         showNote={false}
+        showName={false}
         persistOnConfirm={false}
         onConfirm={handleLocationPick}
         onCancel={() => setPickerOpen(false)}
@@ -122,7 +126,6 @@ export default function VendorOnboardingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
   },
   scroll: {
     flex: 1,
@@ -130,6 +133,7 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.md,
     paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   centered: {
     flex: 1,
@@ -139,17 +143,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   stateTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     textAlign: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: fs(24),
     fontWeight: '800',
   },
   hint: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: fs(15),
+    lineHeight: lh(22),
   },
   doneCard: {
     borderRadius: radius.lg,
@@ -158,11 +162,11 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   doneText: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '600',
   },
   saveError: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
   },
 });

@@ -8,6 +8,7 @@ import Navbar from './components/navbar/Navbar'
 import NewRequests from './pages/NewRequests/NewRequests'
 import Accepted from './pages/Accepted/Accepted'
 import ItemsNeeded from './pages/ItemsNeeded/ItemsNeeded'
+import Notices from './pages/Notices/Notices'
 
 const url = 'http://localhost:4000'
 
@@ -31,6 +32,7 @@ function App() {
             <Route path='/new' element={<NewRequests url={url} onLogout={signOut} />} />
             <Route path='/accepted' element={<Accepted url={url} onLogout={signOut} />} />
             <Route path='/items' element={<ItemsNeeded url={url} onLogout={signOut} />} />
+            <Route path='/notices' element={<Notices url={url} onLogout={signOut} />} />
           </Routes>
         </>
       )}

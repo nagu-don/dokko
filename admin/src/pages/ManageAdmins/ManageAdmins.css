@@ -283,6 +283,12 @@
   color: #13c2c2;
 }
 
+.action-post_notice,
+.action-delete_notice {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
 .action-other {
   background: #f5f5f5;
   color: #666;

@@ -60,8 +60,16 @@ const ensurePrimeAdmin = async () => {
 
 export const connectDB = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is not set in the environment variables");
+    }
+
     await mongoose.connect(process.env.MONGO_URI);
     console.log("DB connected");
+
+    if (!mongoose.connection.db) {
+      throw new Error("Mongoose connected but db instance is not available");
+    }
 
     await ensurePrimeAdmin();
 
@@ -113,6 +121,49 @@ export const connectDB = async () => {
       }
       if (fixedOrders > 0) {
         console.log(`Backfilled Nepali item names into ${fixedOrders} order(s)`);
+      }
+    }
+
+    // one-time backfill — orders placed before unit snapshots carried an
+    // item's real unit would show as kg in vendor apps; copy unitEng/unitNep
+    // over from the items collection by matching nameEng
+    const unitDocs = await mongoose.connection.db
+      .collection("items")
+      .find({}, { projection: { nameEng: 1, unitEng: 1, unitNep: 1 } })
+      .toArray();
+    const unitByEng = new Map(
+      unitDocs.filter((i) => i.unitEng).map((i) => [i.nameEng, i])
+    );
+
+    if (unitByEng.size > 0) {
+      const staleUnits = await mongoose.connection.db
+        .collection("orders")
+        .find({
+          $or: [
+            { "items.unitEng": { $in: [null, ""] } },
+            { "items.unitEng": { $exists: false } },
+          ],
+        })
+        .toArray();
+
+      let fixedUnits = 0;
+      for (const order of staleUnits) {
+        const items = (order.items || []).map((row) => {
+          const src = unitByEng.get(row.nameEng);
+          if (!src) return row;
+          return {
+            ...row,
+            unitEng: row.unitEng || src.unitEng || "",
+            unitNep: row.unitNep || src.unitNep || "",
+          };
+        });
+        await mongoose.connection.db
+          .collection("orders")
+          .updateOne({ _id: order._id }, { $set: { items } });
+        fixedUnits += 1;
+      }
+      if (fixedUnits > 0) {
+        console.log(`Backfilled units into ${fixedUnits} order(s)`);
       }
     }
 

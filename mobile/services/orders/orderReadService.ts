@@ -112,6 +112,8 @@ function normalizeOrder(raw: unknown): OrderRead {
           item: typeof it.item === 'string' ? it.item : undefined,
           nameEng: typeof it.nameEng === 'string' ? it.nameEng : '',
           nameNep: typeof it.nameNep === 'string' ? it.nameNep : '',
+          unitEng: typeof it.unitEng === 'string' ? it.unitEng : '',
+          unitNep: typeof it.unitNep === 'string' ? it.unitNep : '',
           quantity: numOrZero(it.quantity),
           priceAtOrder: numOrZero(it.priceAtOrder),
         }))

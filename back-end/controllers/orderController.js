@@ -70,10 +70,25 @@ const placeOrder = async (req, res) => {
         });
       }
 
+      // count-based units (dozen, per piece, L, ...) must be whole numbers
+      const unit = String(dbItem.unitEng || dbItem.unitNep || "kg").trim().toLowerCase();
+      const weightBased =
+        unit === "" || unit === "kg" || unit === "kilogram" || unit === "kilo" ||
+        unit === "किलो" || unit === "के.जी." || unit === "केजी";
+
+      if (!weightBased && !Number.isInteger(row.quantity)) {
+        return res.status(400).json({
+          success: false,
+          message: `Quantity must be a whole number for ${dbItem.nameEng}`,
+        });
+      }
+
       orderItems.push({
         item: dbItem._id,
         nameEng: dbItem.nameEng,
         nameNep: dbItem.nameNep || "",
+        unitEng: dbItem.unitEng || "",
+        unitNep: dbItem.unitNep || "",
         quantity: row.quantity,
         // pricing is based on the MAX price, same as shown on the site
         priceAtOrder: dbItem.maxPrice,

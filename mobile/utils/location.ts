@@ -15,11 +15,15 @@ function parseDropoff(raw: string | null): Dropoff | null {
   try {
     const value = JSON.parse(raw) as Partial<Dropoff>;
     if (!isValidLocation(value)) return null;
-    return {
+    const dropoff: Dropoff = {
       lat: Number(value.lat),
       lng: Number(value.lng),
-      label: typeof value.label === 'string' && value.label ? value.label : undefined,
     };
+    const note = typeof value.label === 'string' && value.label ? value.label.trim() : '';
+    const name = typeof value.name === 'string' && value.name ? value.name.trim() : '';
+    if (note) dropoff.label = note;
+    if (name) dropoff.name = name;
+    return dropoff;
   } catch {
     return null;
   }

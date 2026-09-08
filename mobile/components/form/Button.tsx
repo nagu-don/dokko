@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { BRAND_BG } from '@/components/BrandTopBar';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { spacing, radius } from '@/theme';
+import { fs, radius, spacing } from '@/theme';
 
 interface ButtonProps {
   title: string;
@@ -71,5 +72,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
   },
-  label: { fontSize: 16, fontWeight: '700' },
+  label: { fontSize: fs(16), fontWeight: '700', textAlign: 'center' },
 });

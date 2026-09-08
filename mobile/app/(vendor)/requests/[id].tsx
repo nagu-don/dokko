@@ -1,12 +1,15 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
+import { VendorNavBar } from '@/components/vendor';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAcceptRequest, useVendorRequest } from '@/hooks/useVendorRequests';
 import { t, tMsg, money, num, iname } from '@/i18n';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import { formatOrderDate } from '@/utils/date';
+import { unitOf } from '@/utils/itemDisplay';
 import {
   vendorDistanceLabel,
   vendorOrderStatusLabel,
@@ -130,13 +133,6 @@ export default function VendorRequestDetailScreen() {
                 </Text>
               </View>
             ) : null}
-            {request.isClosestVendor ? (
-              <View style={[styles.badge, { backgroundColor: palette.primary }]}>
-                <Text style={[styles.badgeText, { color: palette.primaryText }]}>
-                  {t(lang, 'vendorClosestBadge')}
-                </Text>
-              </View>
-            ) : null}
           </View>
 
           <View style={styles.stage}>
@@ -164,8 +160,8 @@ export default function VendorRequestDetailScreen() {
               <View style={styles.lineMain}>
                 <Text style={[styles.lineName, { color: palette.text }]}>{iname(lang, row)}</Text>
                 <Text style={[styles.lineMeta, { color: palette.textMuted }]}>
-                  {num(lang, row.quantity)} {t(lang, 'unitKg')} × {money(lang, row.priceAtOrder)}/
-                  {t(lang, 'unitKg')}
+                  {num(lang, row.quantity)} {unitOf(lang, row)} × {money(lang, row.priceAtOrder)}/
+                  {unitOf(lang, row)}
                 </Text>
               </View>
               <Text style={[styles.lineAmount, { color: palette.text }]}>
@@ -203,26 +199,6 @@ export default function VendorRequestDetailScreen() {
           />
         </Section>
 
-        <Section title={t(lang, 'vendorRequestDropoff')} palette={palette}>
-          {request.dropoff ? (
-            <>
-              {request.dropoff.label ? (
-                <Text style={[styles.labelText, { color: palette.text }]}>
-                  {request.dropoff.label}
-                </Text>
-              ) : null}
-              <Text style={[styles.meta, { color: palette.textMuted }]}>
-                {t(lang, 'dropoffCoords', {
-                  lat: num(lang, request.dropoff.lat.toFixed(5)),
-                  lng: num(lang, request.dropoff.lng.toFixed(5)),
-                })}
-              </Text>
-            </>
-          ) : (
-            <Text style={[styles.meta, { color: palette.textMuted }]}>{t(lang, 'dropoffNotSet')}</Text>
-          )}
-        </Section>
-
         <Button
           variant="secondary"
           title={isRefetching ? t(lang, 'vendorRequestsLoading') : t(lang, 'vendorRefresh')}
@@ -234,22 +210,12 @@ export default function VendorRequestDetailScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'vendorRequestDetailTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
-      </View>
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <VendorNavBar
+        title={t(lang, 'vendorRequestDetailTitle')}
+        onBack={handleBack}
+        hideMenu
+      />
       {content}
 
       {/* Accept / Error feedback — fixed at bottom */}
@@ -334,7 +300,7 @@ function AmountRow({
     <View style={styles.amountRow}>
       <Text style={[styles.amountLabel, { color: palette.textMuted }]}>{label}</Text>
       <Text
-        style={[styles.amountValue, { color: palette.text, fontWeight: strong ? '800' : '600' }]}
+        style={[styles.amountValue, { color: palette.text, fontWeight: strong ? '800' : '700' }]}
       >
         {value}
       </Text>
@@ -345,39 +311,14 @@ function AmountRow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: spacing.sm,
-  },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
   },
   scroll: {
     flex: 1,
   },
   content: {
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   centered: {
     flex: 1,
@@ -388,13 +329,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   stateTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     textAlign: 'center',
   },
   stateHint: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: fs(14),
+    lineHeight: lh(20),
     textAlign: 'center',
   },
   inlineError: {
@@ -403,8 +344,8 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   inlineErrorText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
   },
   headerCard: {
     borderRadius: radius.lg,
@@ -419,20 +360,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   code: {
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: '800',
   },
   pill: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   date: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   badges: {
     flexDirection: 'row',
@@ -442,20 +383,20 @@ const styles = StyleSheet.create({
   badge: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   stage: {
     gap: spacing.xxs,
   },
   stageLabel: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   stageValue: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '700',
   },
   card: {
@@ -464,7 +405,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -474,15 +415,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   customerLine: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '700',
   },
-  labelText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   meta: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   lineRow: {
     flexDirection: 'row',
@@ -495,14 +432,14 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   lineName: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '600',
   },
   lineMeta: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   lineAmount: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
   },
   divider: {
@@ -516,10 +453,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   amountLabel: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   amountValue: {
-    fontSize: 14,
+    fontSize: fs(14),
   },
   bottomBar: {
     position: 'absolute',
@@ -538,8 +475,8 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   errorBannerText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
     textAlign: 'center',
   },
   recoverLink: {
@@ -547,7 +484,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   recoverLinkText: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
   },
 });

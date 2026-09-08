@@ -8,11 +8,8 @@ import {
 } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { radius, spacing } from '@/theme';
+import { BULK_STEP, STEP } from '@/utils/format';
 
-/** Default fine step in kg — mirrors front-end `STEP` (Context.jsx). */
-const STEP = 0.1;
-/** Coarse step in kg — mirrors front-end `BULK_STEP` (Context.jsx). */
-const BULK_STEP = 1;
 /** ms — how long a press must be held before the repeat loop kicks in. */
 const HOLD_DELAY = 350;
 /** First repeat interval (slowest). */
@@ -23,8 +20,12 @@ const MIN_MS = 1000 / 3;
 const DECAY = 0.82;
 
 interface HoldQuantityButtonProps {
-  /** Called with the amount to apply, in kg (STEP first, then BULK_STEP). */
-  onStep: (deltaKg: number) => void;
+  /** Called with the amount to apply (fine step first, then coarse). */
+  onStep: (delta: number) => void;
+  /** Fine step — 0.1 kg for weights, 1 unit for count-based items. */
+  step?: number;
+  /** Coarse step used once a full step has accumulated on a hold. */
+  bulkStep?: number;
   disabled?: boolean;
   accessibilityLabel: string;
   children: string;
@@ -34,13 +35,15 @@ interface HoldQuantityButtonProps {
 /**
  * Quantity stepper button with front-end HoldButton semantics adapted for
  * React Native:
- *   single tap  -> onStep(0.1)
- *   press-hold  -> repeats onStep(0.1) accelerating up to ~3/s; once the
- *                  quantity has moved a full 1 kg during the hold, later
- *                  repeats use onStep(1) so the rate ramps to 1 kg/tick.
+ *   single tap  -> onStep(step)
+ *   press-hold  -> repeats onStep(step) accelerating up to ~3/s; once the
+ *                  applied amount has reached a full bulkStep during the
+ *                  hold, later repeats use onStep(bulkStep).
  */
 export function HoldQuantityButton({
   onStep,
+  step = STEP,
+  bulkStep = BULK_STEP,
   disabled = false,
   accessibilityLabel,
   children,
@@ -57,12 +60,20 @@ export function HoldQuantityButton({
   // refs so the repeat loop sees fresh values without restarting
   const disabledRef = useRef(disabled);
   const onStepRef = useRef(onStep);
+  const stepRef = useRef(step);
+  const bulkStepRef = useRef(bulkStep);
   useEffect(() => {
     disabledRef.current = disabled;
   }, [disabled]);
   useEffect(() => {
     onStepRef.current = onStep;
   }, [onStep]);
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+  useEffect(() => {
+    bulkStepRef.current = bulkStep;
+  }, [bulkStep]);
 
   const stopRepeat = useCallback(() => {
     if (holdTimer.current) {
@@ -84,10 +95,10 @@ export function HoldQuantityButton({
       stopRepeat();
       return;
     }
-    // once a full 1 kg has been applied during this hold, ramp to 1 kg steps
-    const step = accumulated.current >= BULK_STEP ? BULK_STEP : STEP;
-    accumulated.current += step;
-    onStepRef.current(step);
+    // once a full bulk step has been applied during this hold, ramp up
+    const delta = accumulated.current >= bulkStepRef.current ? bulkStepRef.current : stepRef.current;
+    accumulated.current += delta;
+    onStepRef.current(delta);
     delay.current = Math.max(MIN_MS, delay.current * DECAY);
     repeatTimer.current = setTimeout(tick, delay.current);
   }, [stopRepeat]);
@@ -114,7 +125,7 @@ export function HoldQuantityButton({
       didHold.current = false;
       return;
     }
-    onStepRef.current(STEP);
+    onStepRef.current(stepRef.current);
   }, [disabled]);
 
   return (

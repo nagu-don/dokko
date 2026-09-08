@@ -21,6 +21,7 @@ import {
   getVendorPayables,
   getCashTransactions,
 } from "../controllers/settlementController.js";
+import { createNotice, listNotices, deleteNotice } from "../controllers/noticeController.js";
 import { authAdmin } from "../middleware/authMiddleware.js";
 
 const adminRouter = express.Router();
@@ -53,5 +54,10 @@ adminRouter.get("/vendor-payables", authAdmin, getVendorPayables);
 
 // ── Cash transaction tracking ────────────────────────────────
 adminRouter.get("/cash-transactions", authAdmin, getCashTransactions);
+
+// ── Vendor notices (broadcasts) ─────────────────────────────
+adminRouter.get("/notices", authAdmin, listNotices);
+adminRouter.post("/notices", authAdmin, createNotice);
+adminRouter.delete("/notices/:id", authAdmin, deleteNotice);
 
 export default adminRouter;

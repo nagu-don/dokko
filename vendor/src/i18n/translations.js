@@ -73,7 +73,14 @@ export const translations = {
     navAccepted: 'Accepted',
     navCompleted: 'Completed',
     navItems: 'Items needed',
+    navNotices: 'Notices',
     logout: 'Log out',
+
+    // notices page
+    noticesTitle: 'Notices',
+    noNotices: 'No notices yet',
+    loadFailedNotices: 'Could not load notices',
+    postedOn: 'Posted',
 
     // new requests page
     newRequestsTitle: 'New requests',
@@ -158,7 +165,7 @@ export const translations = {
     noOpenOrders: 'No open orders.',
     itemCol: 'Item',
     quantityCol: 'Quantity',
-    pricePerKgCol: 'Price/kg',
+    pricePerKgCol: 'Price per unit',
     totalCol: 'Total',
     grandTotal: 'Grand total',
     selected: 'selected',
@@ -257,7 +264,14 @@ export const translations = {
     navAccepted: 'स्वीकृत',
     navCompleted: 'सम्पन्न',
     navItems: 'आवश्यक सामान',
+    navNotices: 'सूचनाहरू',
     logout: 'लगआउट',
+
+    // notices page
+    noticesTitle: 'सूचनाहरू',
+    noNotices: 'अहिलेसम्म कुनै सूचना छैन',
+    loadFailedNotices: 'सूचनाहरू लोड गर्न सकिएन',
+    postedOn: 'प्रकाशित',
 
     // new requests page
     newRequestsTitle: 'नयाँ अनुरोधहरू',
@@ -342,7 +356,7 @@ export const translations = {
     noOpenOrders: 'कुनै खुला अर्डर छैन।',
     itemCol: 'सामान',
     quantityCol: 'परिमाण',
-    pricePerKgCol: 'प्रति केजी मूल्य',
+    pricePerKgCol: 'प्रति एकाइ मूल्य',
     totalCol: 'जम्मा',
     grandTotal: 'कुल जम्मा',
     selected: 'चयन गरियो',

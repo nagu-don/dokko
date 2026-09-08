@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -448,6 +449,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   attemptLabel: { fontSize: 13 },
-  attemptValue: { fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  attemptValue: { fontSize: 13, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
   statusValue: { fontSize: 13, fontWeight: '700' },
 });

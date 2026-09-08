@@ -9,9 +9,11 @@ const isPlaceholderPhone = (phone) => !phone || /^g\d{9}$/.test(phone)
 
 const Cart = () => {
 
-  const { items, url, token, setShowAuth, cartItems, addToCart, decreaseQuantity, removeItemCompletely, getCartTotalQuantity, clearCart, showToast, t, money, num, iname } = useContext(Context)
+  const { items, url, token, setShowAuth, cartItems, addToCart, decreaseQuantity, removeItemCompletely, getCartTotalQuantity, isKgUnit, clearCart, showToast, t, money, num, iname, iunit } = useContext(Context)
 
   const cartProducts = items.filter((item) => cartItems[item._id] > 0)
+
+  const cartAllKg = cartProducts.every((item) => isKgUnit(item))
 
   const [placing, setPlacing] = useState(false)
   const [pickingLocation, setPickingLocation] = useState(null)
@@ -277,12 +279,12 @@ const Cart = () => {
 
               <div className='cart-item-name-wrap'>
                 <p className='cart-item-name'>{iname(item)}</p>
-                <span className='cart-item-unit-price'>{money(item.maxPrice)}{t('perKgShort')}</span>
+                <span className='cart-item-unit-price'>{money(item.maxPrice)}/{iunit(item)}</span>
               </div>
 
               <div className='cart-item-quantity'>
                 <button onClick={() => decreaseQuantity(item._id)}>-</button>
-                <span>{num(cartItems[item._id])} {t('unitKg')}</span>
+                <span>{num(cartItems[item._id])} {iunit(item)}</span>
                 <button onClick={() => addToCart(item._id)}>+</button>
               </div>
 
@@ -299,7 +301,11 @@ const Cart = () => {
 
           <div className='cart-summary'>
             <div className='summary-row'>
-              <span>{t('subtotalWithCount', { qty: num(getCartTotalQuantity()) })}</span>
+              <span>
+                {cartAllKg
+                  ? t('subtotalWithCount', { qty: num(getCartTotalQuantity()) })
+                  : t('subtotalItems', { count: num(cartProducts.length) })}
+              </span>
               <b>{money(subtotal)}</b>
             </div>
             <div className='summary-row'>

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/i18n';
 import { spacing, radius } from '@/theme';

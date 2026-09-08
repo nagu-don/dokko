@@ -4,7 +4,7 @@ import { useUi } from '../../context/UiContext';
 import { getAuthHeaders, isAuthError } from '../../utils/api';
 
 const ItemsNeeded = ({ url, onLogout }) => {
-  const { t, money, num, iname } = useUi();
+  const { t, money, num, iname, iunit } = useUi();
 
   const [rows, setRows] = useState([]);
   const [grandTotal, setGrandTotal] = useState(0);
@@ -143,7 +143,7 @@ const ItemsNeeded = ({ url, onLogout }) => {
                       />
                     </td>
                     <td>{iname(row)}</td>
-                    <td>{num(row.quantity)} {t('unitKg')}</td>
+                    <td>{num(row.quantity)} {iunit(row)}</td>
                     <td>{money(row.pricePerKg)}</td>
                     <td>{money(row.lineTotal)}</td>
                   </tr>

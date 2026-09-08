@@ -1,5 +1,6 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { spacing } from '@/theme';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
+import { fs, spacing } from '@/theme';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 /** Full-screen spinner shown while the auth session is restored from storage. */
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   label: {
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: '600',
   },
 });

@@ -122,6 +122,7 @@ export const SERVER_MESSAGE_KEYS: Record<string, string> = {
   'You can only track your own orders': 'errNotYourOrder',
   'Failed to load vendor location': 'trackingLoadFailed',
   'Failed to fetch vendor location': 'trackingLoadFailed',
+  'Failed to load notices': 'vendorLoadFailedNotices',
 };
 
 export function tMsg(lang: AppLang, message: string | undefined): string {

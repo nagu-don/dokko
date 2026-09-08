@@ -1,4 +1,5 @@
 export * from './colors';
+export * from './typography';
 
 /** Shared spacing scale. */
 export const spacing = {

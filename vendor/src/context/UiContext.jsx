@@ -52,8 +52,16 @@ export const UiProvider = ({ children }) => {
   const iname = (row) =>
     lang === 'np' && row?.nameNep ? row.nameNep : row?.nameEng;
 
+  // item units follow the language; order rows placed before unit snapshots
+  // exist fall back to the generic unit label
+  const iunit = (row) => {
+    const unit =
+      lang === 'np' ? row?.unitNep || row?.unitEng : row?.unitEng || row?.unitNep;
+    return unit || t('unitKg');
+  };
+
   return (
-    <UiContext.Provider value={{ lang, setLang, theme, setTheme, t, tMsg, money, num, iname }}>
+    <UiContext.Provider value={{ lang, setLang, theme, setTheme, t, tMsg, money, num, iname, iunit }}>
       {children}
     </UiContext.Provider>
   );

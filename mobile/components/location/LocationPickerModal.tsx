@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t, num } from '@/i18n';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import { savePreferredDropoff } from '@/utils/location';
 import type { Dropoff } from '@/types';
 
@@ -95,6 +95,8 @@ interface LocationPickerModalProps {
   hint?: string;
   /** Hide the "note for the vendor" input (vendor working-location mode). */
   showNote?: boolean;
+  /** Hide the "save a name for this location" input (vendor working-location mode). */
+  showName?: boolean;
   /** Skip persisting the spot as the customer's preferred drop-off point. */
   persistOnConfirm?: boolean;
 }
@@ -107,6 +109,7 @@ export function LocationPickerModal({
   title,
   hint,
   showNote = true,
+  showName = true,
   persistOnConfirm = true,
 }: LocationPickerModalProps) {
   const { palette, lang } = useAppTheme();
@@ -118,6 +121,7 @@ export function LocationPickerModal({
 
   const [region, setRegion] = useState<PickerRegion>(KATHMANDU);
   const [note, setNote] = useState('');
+  const [placeName, setPlaceName] = useState('');
   const [gpsNote, setGpsNote] = useState('');
   const [locating, setLocating] = useState(false);
   const [userLocVisible, setUserLocVisible] = useState(false);
@@ -140,6 +144,9 @@ export function LocationPickerModal({
   useEffect(() => {
     if (!visible) return;
     initialRef.current = initial ?? null;
+    // Name and note are stored separately — pre-fill each from its own value
+    // so the vendor-note never echoes the saved location name.
+    setPlaceName(initial?.name ?? '');
     setNote(initial?.label ?? '');
     setGpsNote('');
     setUserLocVisible(false);
@@ -193,10 +200,15 @@ export function LocationPickerModal({
   };
 
   const confirm = () => {
+    // The vendor note is the `label` that travels with the order; the friendly
+    // name is kept locally and shown only in the customer's own settings.
+    const vendorNote = note.trim() || undefined;
+    const savedName = placeName.trim() || undefined;
     const dropoff: Dropoff = {
       lat: Number(region.latitude.toFixed(6)),
       lng: Number(region.longitude.toFixed(6)),
-      label: note.trim() ? note.trim() : undefined,
+      label: vendorNote,
+      name: savedName,
     };
     if (persistOnConfirm) {
       void savePreferredDropoff(dropoff);
@@ -238,11 +250,12 @@ export function LocationPickerModal({
             style={StyleSheet.absoluteFill}
             mapStyle={MAP_STYLE}
             onRegionDidChange={(event) => {
-              const [lng, lat] = event.nativeEvent.center;
+              const next = event.nativeEvent;
+              const [lng, lat] = next.center;
               setRegion((prev) => ({
                 latitude: lat,
                 longitude: lng,
-                zoom: event.nativeEvent.zoom ?? prev.zoom,
+                zoom: next.zoom ?? prev.zoom,
               }));
             }}
             scaleBar={false}
@@ -290,6 +303,24 @@ export function LocationPickerModal({
             <Text style={[styles.locateText, { color: palette.primary }]}>◎ {t(lang, 'locateMe')}</Text>
           </Pressable>
 
+          {showName ? (
+            <View style={styles.noteField}>
+              <Text style={[styles.noteLabel, { color: palette.textMuted }]}>
+                {t(lang, 'locationNameLabel')}
+              </Text>
+              <TextInput
+                value={placeName}
+                onChangeText={setPlaceName}
+                placeholder={t(lang, 'locationNamePlaceholder')}
+                placeholderTextColor={palette.textMuted}
+                style={[
+                  styles.noteInput,
+                  { backgroundColor: palette.background, color: palette.text, borderColor: palette.border },
+                ]}
+              />
+            </View>
+          ) : null}
+
           {showNote ? (
             <View style={styles.noteField}>
               <Text style={[styles.noteLabel, { color: palette.textMuted }]}>
@@ -334,8 +365,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   closeText: {
-    fontSize: 30,
-    lineHeight: 32,
+    fontSize: fs(30),
+    lineHeight: lh(32),
     fontWeight: '400',
   },
   topHeader: {
@@ -343,12 +374,12 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   title: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
   },
   hint: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
   },
   mapWrap: {
     flex: 1,
@@ -382,8 +413,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   statusText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
   },
   panel: {
     borderTopWidth: 1,
@@ -391,7 +422,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   coords: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -402,14 +433,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locateText: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '600',
+    textAlign: 'center',
   },
   noteField: {
     gap: spacing.xxs,
   },
   noteLabel: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '600',
   },
   noteInput: {
@@ -417,7 +449,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    fontSize: 15,
+    fontSize: fs(15),
   },
   footer: {
     flexDirection: 'row',

@@ -21,6 +21,9 @@ const Navbar = ({ onLogout }) => {
         <NavLink to='/vendors' className={({isActive})=>(isActive ? "active" : "")}>
           <p>{t('navVendors')}</p>
         </NavLink>
+        <NavLink to='/notices' className={({isActive})=>(isActive ? "active" : "")}>
+          <p>{t('navNotices')}</p>
+        </NavLink>
         <NavLink to='/settlements' className={({isActive})=>(isActive ? "active" : "")}>
           <p>{t('navSettlements')}</p>
         </NavLink>

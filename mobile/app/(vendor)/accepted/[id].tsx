@@ -4,19 +4,21 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { AppText as Text } from '@/components/AppText';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
+import { VendorNavBar, VendorRouteMap } from '@/components/vendor';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useCompleteRequest, useVendorAcceptedOrder } from '@/hooks/useVendorRequests';
 import { useVendorLiveLocation } from '@/hooks/useVendorTracking';
 import { t, money, num, iname, tMsg } from '@/i18n';
 import { getServerMessage, isApiError } from '@/services/api';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import { formatOrderDate } from '@/utils/date';
+import { unitOf } from '@/utils/itemDisplay';
 import {
   vendorOrderStatusLabel,
   vendorPaymentStatusLabel,
@@ -68,7 +70,7 @@ export default function VendorAcceptedOrderScreen() {
   const completeMutation = useCompleteRequest();
 
   const handleBack = () => {
-    router.replace('/dashboard');
+    router.replace('/accepted' as Href);
   };
 
   const handleRefresh = () => {
@@ -87,7 +89,10 @@ export default function VendorAcceptedOrderScreen() {
   const isCompleted = order?.status === 'Delivered';
 
   // Foreground live-location reporting while delivering (Phase 14C).
-  const trackingStatus = useVendorLiveLocation(isProcessing);
+  useVendorLiveLocation(isProcessing);
+
+  // "Show in map" navigation modal (vendor web RouteMap parity).
+  const [mapVisible, setMapVisible] = useState(false);
 
   const handleCompletePress = () => {
     setConfirmVisible(true);
@@ -184,7 +189,7 @@ export default function VendorAcceptedOrderScreen() {
           />
         }
       >
-        {/* Banner: acceptance success or completion success */}
+        {/* Banner: completion success */}
         {isCompleted ? (
           <View
             style={[
@@ -196,38 +201,6 @@ export default function VendorAcceptedOrderScreen() {
               style={[styles.successBannerText, { color: palette.primaryText }]}
             >
               {t(lang, 'vendorCompleteSuccess')}
-            </Text>
-          </View>
-        ) : (
-          <View
-            style={[
-              styles.successBanner,
-              { backgroundColor: palette.primary },
-            ]}
-          >
-            <Text
-              style={[styles.successBannerText, { color: palette.primaryText }]}
-            >
-              {t(lang, 'vendorAcceptedSuccess')}
-            </Text>
-          </View>
-        )}
-
-        {/* Live-tracking status (Phase 14C) — foreground only, best-effort */}
-        {trackingStatus === 'active' || trackingStatus === 'preparing' ? (
-          <View
-            style={[
-              styles.trackingHint,
-              { backgroundColor: palette.surface, borderColor: palette.primary },
-            ]}
-          >
-            <Text style={[styles.trackingHintText, { color: palette.primary }]}>
-              {t(
-                lang,
-                trackingStatus === 'preparing'
-                  ? 'vendorTrackingPreparing'
-                  : 'vendorTrackingActive'
-              )}
             </Text>
           </View>
         ) : null}
@@ -314,8 +287,8 @@ export default function VendorAcceptedOrderScreen() {
                   {iname(lang, row)}
                 </Text>
                 <Text style={[styles.lineMeta, { color: palette.textMuted }]}>
-                  {num(lang, row.quantity)} {t(lang, 'unitKg')} ×{' '}
-                  {money(lang, row.priceAtOrder)}/{t(lang, 'unitKg')}
+                  {num(lang, row.quantity)} {unitOf(lang, row)} ×{' '}
+                  {money(lang, row.priceAtOrder)}/{unitOf(lang, row)}
                 </Text>
               </View>
               <Text style={[styles.lineAmount, { color: palette.text }]}>
@@ -355,28 +328,12 @@ export default function VendorAcceptedOrderScreen() {
           />
         </Section>
 
-        {/* Drop-off */}
-        <Section title={t(lang, 'vendorRequestDropoff')} palette={palette}>
-          {order.dropoff ? (
-            <>
-              {order.dropoff.label ? (
-                <Text style={[styles.labelText, { color: palette.text }]}>
-                  {order.dropoff.label}
-                </Text>
-              ) : null}
-              <Text style={[styles.meta, { color: palette.textMuted }]}>
-                {t(lang, 'dropoffCoords', {
-                  lat: num(lang, order.dropoff.lat.toFixed(5)),
-                  lng: num(lang, order.dropoff.lng.toFixed(5)),
-                })}
-              </Text>
-            </>
-          ) : (
-            <Text style={[styles.meta, { color: palette.textMuted }]}>
-              {t(lang, 'dropoffNotSet')}
-            </Text>
-          )}
-        </Section>
+        {/* Drop-off map navigation */}
+        {order.dropoff ? (
+          <View style={styles.actions}>
+            <Button title={t(lang, 'showInMap')} onPress={() => setMapVisible(true)} />
+          </View>
+        ) : null}
 
         {/* Payment */}
         <Section title={t(lang, 'orderPaymentSection')} palette={palette}>
@@ -527,34 +484,13 @@ export default function VendorAcceptedOrderScreen() {
 
   return (
     <View
-      style={[
-        styles.screen,
-        { backgroundColor: palette.background, paddingTop: insets.top },
-      ]}
+      style={[styles.screen, { backgroundColor: palette.background }]}
     >
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.back,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>
-            ‹
-          </Text>
-        </Pressable>
-        <Text
-          style={[styles.topTitle, { color: palette.text }]}
-          numberOfLines={1}
-        >
-          {t(lang, isCompleted ? 'vendorCompleteTitle' : 'vendorAcceptedTitle')}
-        </Text>
-        <View style={styles.topSpacer} />
-      </View>
+      <VendorNavBar
+        title={t(lang, isCompleted ? 'vendorCompleteTitle' : 'vendorAcceptedTitle')}
+        onBack={handleBack}
+        hideMenu
+      />
       {content}
 
       {/* Confirmation dialog (inline modal) */}
@@ -585,6 +521,16 @@ export default function VendorAcceptedOrderScreen() {
             </View>
           </View>
         </View>
+      ) : null}
+
+      {/* "Show in map" navigation modal */}
+      {mapVisible && order && order.dropoff ? (
+        <VendorRouteMap
+          visible
+          code={order.code}
+          dropoff={order.dropoff}
+          onClose={() => setMapVisible(false)}
+        />
       ) : null}
     </View>
   );
@@ -648,7 +594,7 @@ function AmountRow({
       <Text
         style={[
           styles.amountValue,
-          { color: palette.text, fontWeight: strong ? '800' : '600' },
+          { color: palette.text, fontWeight: strong ? '800' : '700' },
         ]}
       >
         {value}
@@ -660,39 +606,14 @@ function AmountRow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: spacing.sm,
-  },
-  back: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  topSpacer: {
-    width: spacing.xl + 8,
   },
   scroll: {
     flex: 1,
   },
   content: {
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   centered: {
     flex: 1,
@@ -703,13 +624,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   stateTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     textAlign: 'center',
   },
   stateHint: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: fs(14),
+    lineHeight: lh(20),
     textAlign: 'center',
   },
   successBanner: {
@@ -718,18 +639,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successBannerText: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
-  },
-  trackingHint: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    padding: spacing.sm,
-  },
-  trackingHintText: {
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '600',
   },
   headerCard: {
     borderRadius: radius.lg,
@@ -744,29 +655,29 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   code: {
-    fontSize: 18,
+    fontSize: fs(18),
     fontWeight: '800',
   },
   pill: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   date: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   stage: {
     gap: spacing.xxs,
   },
   stageLabel: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   stageValue: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '700',
   },
   card: {
@@ -775,7 +686,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -785,19 +696,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '800',
   },
   customerLine: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '700',
   },
-  labelText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   meta: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   lineRow: {
     flexDirection: 'row',
@@ -810,14 +717,14 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   lineName: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '600',
   },
   lineMeta: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   lineAmount: {
-    fontSize: 14,
+    fontSize: fs(14),
     fontWeight: '700',
   },
   divider: {
@@ -831,10 +738,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   amountLabel: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   amountValue: {
-    fontSize: 14,
+    fontSize: fs(14),
   },
   noteCard: {
     borderRadius: radius.lg,
@@ -842,16 +749,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   noteText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
     textAlign: 'center',
   },
   actions: {
     gap: spacing.sm,
   },
   inlineErrorText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
     textAlign: 'center',
   },
   overlay: {
@@ -874,13 +781,13 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   dialogTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     textAlign: 'center',
   },
   dialogMessage: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: fs(14),
+    lineHeight: lh(20),
     textAlign: 'center',
   },
   dialogActions: {

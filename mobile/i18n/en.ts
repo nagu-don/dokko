@@ -112,9 +112,10 @@ export const en = {
   increaseAria: 'Increase {name}',
   decreaseAria: 'Decrease {name}',
   removeItemAria: 'Remove {name} from cart',
-  quantityInputAria: 'Quantity of {name} in kg',
+  quantityInputAria: 'Quantity of {name} in {unit}',
   openCartAria: 'Open cart',
   subtotalWithCount: 'Subtotal ({qty} kg)',
+  subtotalWithItems: 'Subtotal ({count} items)',
   checkoutNote: 'Delivery charges are added by the vendor after your order is accepted.',
   goToCheckout: 'Proceed to checkout',
   proceedWithOrder: 'Proceed with Order',
@@ -127,6 +128,7 @@ export const en = {
   themeDark: 'Dark',
   preferredDropoff: 'Preferred drop-off',
   changeOnMap: 'Change on map',
+  addNewLocation: 'Add a new location',
   notSet: 'Not set',
   selectPreferredTitle: 'Choose your preferred drop-off point',
 
@@ -157,6 +159,8 @@ export const en = {
   locationDenied: 'Permission to use your location was denied. You can still move the map, or enable location in Settings.',
   locationServicesOff: 'Location is turned off. Turn it on to use your current spot.',
   locationFetchFailed: 'Could not get your location. Move the map to choose a spot.',
+  locationNameLabel: 'Save a name for this location (optional)',
+  locationNamePlaceholder: 'e.g. Home, Office',
   locationNoteLabel: 'Note for the vendor (optional)',
   locationNotePlaceholder: 'e.g. near the blue gate',
   confirmLocation: 'Confirm location',
@@ -193,6 +197,7 @@ export const en = {
   pastOrders: 'Past orders',
   orderPlacedAt: 'Placed {date}',
   orderItemsSummary: '({count} items · {kg} kg)',
+  orderItemsCount: '({count} items)',
   orderSubtotal: 'Subtotal',
   orderDelivery: 'Delivery',
   orderAdditionalCharges: 'Service fee',
@@ -223,7 +228,7 @@ export const en = {
   stageSearchingWide: 'Searching a wider area…',
   stageFindingClosest: 'Finding closest available vendor…',
   stageAssigned: 'Vendor assigned',
-  stageNoVendor: 'No vendor available',
+  stageNoVendor: 'No vendors are available for your request',
   stageSearching: 'Searching for a vendor…',
 
   // order buckets (UI grouping, derived from server fields)
@@ -352,7 +357,7 @@ export const en = {
   orderPaymentView: 'View payment',
 
   // vendor dashboard / onboarding (Phase 9)
-  vendorDashboardTitle: 'Dokko Vendor',
+  vendorDashboardTitle: 'New Request',
   vendorSignInAs: 'Signed in as {name}',
   vendorReadyPill: 'Ready for requests',
   vendorNotReadyPill: 'Set up needed',
@@ -363,7 +368,6 @@ export const en = {
   vendorAvailabilityNote:
     'Handled automatically alongside your location — this app has no online/offline switch yet.',
   vendorDistanceUnit: '{km} km away',
-  vendorClosestBadge: 'Closest vendor',
   vendorRequestsSection: 'Incoming requests',
   vendorRequestsCount: '{count} available',
   vendorNoRequests: 'No requests available',
@@ -375,7 +379,6 @@ export const en = {
   vendorRefresh: 'Refresh',
   vendorLocationSaveError: 'We could not save your location. Please try again.',
   vendorProfileError: 'We could not load your profile. Please try again.',
-  vendorExternalNote: 'Orders are accepted from the shop screen for now.',
 
   vendorOnboardingTitle: 'Where will you operate?',
   vendorOnboardingHint1: 'Set a working location so orders from nearby customers reach you.',
@@ -386,6 +389,20 @@ export const en = {
   vendorGoToDashboard: 'Go to dashboard',
   vendorSetLocationTitle: 'Set your working location',
   vendorSetLocationHint: 'Where do you want to receive requests? Move the map so the pin points there.',
+
+  // vendor settings (mirror vendor/src/components/settings)
+  vendorSettingsPayout: 'Payout method',
+  vendorSettingsPayoutNotSet: 'Not configured',
+  vendorSettingsChangePayout: 'Change',
+  vendorSettingsBankAccount: 'Bank Account',
+  vendorSettingsAccountHolder: 'Account holder name',
+  vendorSettingsBankName: 'Bank name',
+  vendorSettingsAccountNumber: 'Account number',
+  vendorSettingsSavePayout: 'Save',
+  vendorSettingsPayoutUpdated: 'Payout information updated',
+  vendorSettingsWorkingLocation: 'Working location',
+  vendorSettingsPayoutNotSetOnboarding: 'No payout configured yet',
+  vendorSettingsGoToDashboard: 'Go to dashboard',
 
   // vendor request list + details
   vendorRequestDetailTitle: 'Request details',
@@ -422,6 +439,15 @@ export const en = {
   vendorAcceptedNotAssigned: 'This order is not assigned to you.',
   vendorAcceptedSuccess: 'This order is now assigned to you.',
   vendorAcceptedAt: 'Accepted',
+
+  // vendor navigation (accepted order — "Show in map")
+  showInMap: 'Show in map',
+  vendorNavTitle: '{code} — Delivery location',
+  navFromGps: 'From your GPS location',
+  navFromSaved: 'From your saved working location',
+  navDistanceEta: '{km} km · ~{min} min',
+  navDistanceToDropoff: '{km} km to drop-off',
+  navRecenter: 'Re-center on your location',
 
   // vendor live-location reporting (Phase 14C)
   vendorTrackingPreparing: 'Starting live location sharing…',
@@ -509,7 +535,8 @@ export const en = {
   errVendorLocationUpdate: 'Failed to update location',
   errVendorRequests: 'Failed to load requests',
 
-  // vendor active + completed orders (Phase 13)
+  // vendor accepted orders — one screen for active + completed (Phase 13)
+  vendorAcceptedOrdersTitle: 'Accepted Orders',
   vendorActiveOrdersTitle: 'Active Orders',
   vendorActiveOrdersEmptyTitle: 'No active orders',
   vendorActiveOrdersEmptyHint:
@@ -522,11 +549,6 @@ export const en = {
     'Orders you deliver will appear here in your history.',
   vendorCompletedOrdersErrorTitle: 'Could not load completed orders',
   vendorCompletedOrdersErrorHint: 'Check your connection and try again. Nothing changed on the server.',
-  vendorOrdersDashboardSection: 'Orders',
-  vendorOrdersDashboardActive: 'Active orders',
-  vendorOrdersDashboardActiveCount: '{count} active',
-  vendorOrdersDashboardCompleted: 'Completed orders',
-  vendorOrdersDashboardCompletedCount: '{count} completed',
   vendorOrderActiveStage: 'Active',
   vendorOrderDeliveredStage: 'Delivered',
   vendorOrderPaidPayment: 'Payment: {status}',
@@ -534,4 +556,29 @@ export const en = {
   vendorOrderCompletedOn: 'Completed {date}',
   vendorOrderDetailTitle: 'Order details',
   vendorOrderNotFoundHint: 'This order could not be found.',
+
+  // vendor items needed
+  vendorItemsNeededTitle: 'Items Needed',
+  vendorItemsNeededEmptyTitle: 'No open orders',
+  vendorItemsNeededEmptyHint: 'Items from your accepted orders will appear here.',
+  vendorItemsNeededErrorTitle: 'Could not load items',
+  vendorItemsNeededErrorHint: 'Check your connection and try again.',
+  vendorItemsItemCol: 'Item',
+  vendorItemsQtyCol: 'Qty',
+  vendorItemsPriceCol: 'Price per unit',
+  vendorItemsTotalCol: 'Total',
+  vendorItemsGrandTotal: 'Grand total',
+  vendorItemsSelected: '{count} selected',
+  vendorItemsOk: 'Mark obtained',
+  vendorItemsOkSuccess: 'Items marked as obtained',
+  vendorItemsOkError: 'Failed to mark items',
+  vendorItemsNoSelection: 'Select at least one item',
+
+  // vendor notices
+  vendorNoticesTitle: 'Notices',
+  vendorNoNoticesTitle: 'No notices yet',
+  vendorNoNoticesHint: 'Announcements from Dokko will appear here.',
+  vendorLoadFailedNotices: 'Could not load notices',
+  vendorLoadFailedNoticesHint: 'Check your connection and try again.',
+  vendorNoticePostedOn: 'Posted {date}',
 };

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const adminActivitySchema = new mongoose.Schema({
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "admins",
+    ref: "admin",
     required: true,
     index: true,
   },
@@ -22,6 +22,8 @@ const adminActivitySchema = new mongoose.Schema({
       "update_order",
       "create_settlement",
       "update_settings",
+      "post_notice",
+      "delete_notice",
       "other",
     ],
   },

@@ -28,6 +28,42 @@ export interface UpdateVendorLocationInput {
   lng: number;
 }
 
+/** PATCH /api/vendors/payout request body. */
+export interface UpdateVendorPayoutInput {
+  payoutMethod: 'bank';
+  payoutAccountHolder: string;
+  payoutBankName: string;
+  payoutAccountNumber: string;
+}
+
+/**
+ * One broadcast notice from GET /api/vendors/notices (authVendor).
+ *
+ * Bilingual title/body fields mirror the backend noticeModel (titleEn/titleNp/
+ * bodyEn/bodyNp). The app renders the active language with a fallback to the
+ * other language — the content is data from the server, never run through `t()`.
+ * Sorted server-side by createdAt desc (limit 100).
+ */
+export interface VendorNotice {
+  id: string;
+  titleEn: string;
+  titleNp: string;
+  bodyEn: string;
+  bodyNp: string;
+  createdAt: string;
+}
+
+/** One aggregated item row from GET /api/vendors/summary. */
+export interface VendorSummaryItem {
+  nameEng: string;
+  nameNep: string;
+  unitEng?: string;
+  unitNep?: string;
+  quantity: number;
+  pricePerKg: number;
+  lineTotal: number;
+}
+
 /**
  * One line of an order as the vendor sees it. This is the ORDER SNAPSHOT
  * (historical), not the current catalog: a renamed/re-priced item stays as it
@@ -36,6 +72,8 @@ export interface UpdateVendorLocationInput {
 export interface VendorRequestItem {
   nameEng: string;
   nameNep?: string;
+  unitEng?: string;
+  unitNep?: string;
   quantity: number;
   priceAtOrder: number;
 }

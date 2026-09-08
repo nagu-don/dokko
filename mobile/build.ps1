@@ -1,0 +1,6 @@
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:ANDROID_HOME = "E:\Development\Android\Sdk"
+$env:ANDROID_SDK_ROOT = "E:\Development\Android\Sdk"
+$env:GRADLE_USER_HOME = "E:\Development\Gradle"
+Set-Location "C:\Users\dell\Desktop\dokko\mobile\android"
+& cmd.exe /c "set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr&& set ANDROID_HOME=E:\Development\Android\Sdk&& set ANDROID_SDK_ROOT=E:\Development\Android\Sdk&& set GRADLE_USER_HOME=E:\Development\Gradle&& gradlew.bat app:assembleDebug -x lint -x test --configure-on-demand --build-cache -PreactNativeDevServerPort=8081 -PreactNativeArchitectures=arm64-v8a" *> "C:\Users\dell\Desktop\dokko\mobile\build_output.log"

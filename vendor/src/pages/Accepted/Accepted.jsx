@@ -8,7 +8,7 @@ import { getAuthHeaders, isAuthError } from '../../utils/api';
 const POLL_INTERVAL = 3000;
 
 const Accepted = ({ url, onLogout }) => {
-  const { t, tMsg, money, num, iname } = useUi();
+  const { t, tMsg, money, num, iname, iunit } = useUi();
   const token = localStorage.getItem('vendorToken');
 
   const [orders, setOrders] = useState([]);
@@ -238,7 +238,7 @@ const Accepted = ({ url, onLogout }) => {
                 <ul className='item-lines'>
                   {order.items.map((row, i) => (
                     <li key={i}>
-                      {num(row.quantity)} {t('unitKg')} × {iname(row)} @ {money(row.priceAtOrder)}/{t('unitKg')}
+                      {num(row.quantity)} {iunit(row)} × {iname(row)} @ {money(row.priceAtOrder)}/{iunit(row)}
                     </li>
                   ))}
                 </ul>

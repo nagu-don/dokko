@@ -21,7 +21,7 @@ import { t, num } from '@/i18n';
 import { useAuthStore } from '@/stores/authStore';
 import { useCartStore } from '@/stores/cartStore';
 import { radius, spacing } from '@/theme';
-import { cartTotalKg } from '@/utils/cart';
+import { cartBadgeValue } from '@/utils/cart';
 import { catalogErrorMessage } from '@/utils/catalogMessages';
 import { buildGroups, searchGroups, MATCH_THRESHOLD } from '@/utils/search';
 import type { ItemGroup } from '@/types';
@@ -42,7 +42,7 @@ export default function CustomerHomeScreen() {
 
   const cartLines = useCartStore((s) => s.lines);
   const cartHydrated = useCartStore((s) => s.hydrated);
-  const totalKg = cartTotalKg(cartLines);
+  const cartBadge = cartBadgeValue(cartLines);
 
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
@@ -95,9 +95,9 @@ export default function CustomerHomeScreen() {
             style={({ pressed }) => [styles.navIconBtn, { opacity: pressed ? 0.6 : 1 }]}
           >
             <Ionicons name="cart" size={26} color="#FFFFFF" />
-            {cartHydrated && totalKg > 0 ? (
+            {cartHydrated && cartBadge > 0 ? (
               <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{num(lang, totalKg.toFixed(1))}</Text>
+                <Text style={styles.cartBadgeText}>{num(lang, cartBadge)}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -215,7 +215,7 @@ export default function CustomerHomeScreen() {
         )}
         </View>
 
-        {cartHydrated && totalKg > 0 ? (
+        {cartHydrated && cartBadge > 0 ? (
           <Button
             title={t(lang, 'proceedWithOrder')}
             onPress={() => router.push('/cart')}

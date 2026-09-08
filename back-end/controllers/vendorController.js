@@ -4,7 +4,7 @@ import buildAuthController from "./authFactory.js";
 import buildGoogleAuthController from "./googleAuthFactory.js";
 import { authAdmin } from "../middleware/authMiddleware.js";
 import { assignVendor } from "../services/priorityService.js";
-import { STAGE_RADIUS_KM, STAGE_RADIUS_RADIANS } from "../config/priorityConfig.js";
+import { DELIVERY_MAX_KM, STAGE_RADIUS_KM, STAGE_RADIUS_RADIANS } from "../config/priorityConfig.js";
 
 const { register, login } = buildAuthController(vendorModel);
 const { googleAuth } = buildGoogleAuthController(vendorModel);
@@ -267,6 +267,8 @@ const presentOrder = (order, extra = {}) => ({
   items: (order.items || []).map((row) => ({
     nameEng: row.nameEng,
     nameNep: row.nameNep || "",
+    unitEng: row.unitEng || "",
+    unitNep: row.unitNep || "",
     quantity: row.quantity,
     priceAtOrder: row.priceAtOrder ?? row.avgPriceAtOrder,
   })),
@@ -375,12 +377,24 @@ export const listNewRequests = async (req, res) => {
         const key = coords.join(",");
 
         if (!dropoffClosest.has(key)) {
+          // Same eligibility filter as geoVendorMatcher's SEARCHING_CLOSEST
+          // (nearest eligible vendor within DELIVERY_MAX_KM) — otherwise a
+          // vendor that never set a real location (default
+          // Kathmandu coords) or an unavailable vendor could be picked as
+          // "closest" and the truly eligible vendor would never see the order.
           const nearestDocs = await vendorModel.aggregate([
             {
               $geoNear: {
                 near: { type: "Point", coordinates: coords },
                 distanceField: "dist",
+                maxDistance: DELIVERY_MAX_KM * 1000,
                 spherical: true,
+                query: {
+                  hasSetLocation: true,
+                  "location.type": "Point",
+                  "location.coordinates": { $exists: true, $ne: [] },
+                  isAvailable: { $ne: false },
+                },
               },
             },
             { $limit: 1 },
@@ -505,7 +519,8 @@ export const acceptRequest = async (req, res) => {
     // Verify the accepting vendor is actually within the permitted
     // radius for the current stage.  A malicious vendor calling the
     // endpoint directly must not be able to claim an order outside
-    // their geographic range.
+    // their geographic range.  SEARCHING_CLOSEST is bounded by the
+    // service-area cap (DELIVERY_MAX_KM) instead of a per-stage radius.
     const vendorCoords = req.account.location?.coordinates;
     const dropoffCoords = order.dropoff?.coordinates;
 
@@ -516,23 +531,22 @@ export const acceptRequest = async (req, res) => {
       });
     }
 
-    const requiredRadius = STAGE_RADIUS_KM[stage];
+    const distKm = haversineKm(vendorCoords, dropoffCoords);
+    const requiredRadius = STAGE_RADIUS_KM[stage] ?? DELIVERY_MAX_KM;
 
-    if (requiredRadius) {
-      const distKm = haversineKm(vendorCoords, dropoffCoords);
-      if (distKm > requiredRadius) {
-        return res.status(403).json({
-          success: false,
-          message: "You are outside the delivery radius for this stage",
-        });
-      }
+    if (distKm > requiredRadius) {
+      return res.status(403).json({
+        success: false,
+        message: "You are outside the delivery radius for this stage",
+      });
     }
 
     // ── 5. atomic claim ──────────────────────────────────────────
     // assignVendor uses findOneAndUpdate with { vendor: null,
     // priorityStage: { $in: [...] } } guard.  If another vendor
-    // already accepted, this returns null.
-    const updated = await assignVendor(order._id, req.account._id, stage);
+    // already accepted, this returns null.  The delivery charge is
+    // derived from `distKm` (distance-based tariff).
+    const updated = await assignVendor(order._id, req.account._id, distKm);
 
     if (!updated) {
       return res.status(409).json({
@@ -651,7 +665,14 @@ export const itemsSummary = async (req, res) => {
         const price = row.priceAtOrder ?? row.avgPriceAtOrder ?? 0;
 
         if (!byItem.has(key)) {
-          byItem.set(key, { nameEng: key, nameNep: row.nameNep || "", quantity: 0, pricePerKg: price });
+          byItem.set(key, {
+            nameEng: key,
+            nameNep: row.nameNep || "",
+            unitEng: row.unitEng || "",
+            unitNep: row.unitNep || "",
+            quantity: 0,
+            pricePerKg: price,
+          });
         }
 
         const entry = byItem.get(key);

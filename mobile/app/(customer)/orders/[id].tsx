@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoadingView } from '@/components/LoadingView';
@@ -11,6 +12,7 @@ import { t, money, num } from '@/i18n';
 import { radius, spacing } from '@/theme';
 import type { OrderRead, OrderReadItem } from '@/types';
 import { formatOrderDate } from '@/utils/date';
+import { unitOf } from '@/utils/itemDisplay';
 import {
   isSearching,
   orderBucket,
@@ -282,8 +284,8 @@ function LineRow({
       <View style={styles.lineMain}>
         <Text style={[styles.lineName, { color: palette.text }]}>{name}</Text>
         <Text style={[styles.lineMeta, { color: palette.textMuted }]}>
-          {money(lang, item.priceAtOrder)}/{t(lang, 'unitKg')} · {num(lang, item.quantity.toFixed(1))}{' '}
-          {t(lang, 'unitKg')}
+          {money(lang, item.priceAtOrder)}/{unitOf(lang, item)} · {num(lang, item.quantity.toFixed(1))}{' '}
+          {unitOf(lang, item)}
         </Text>
       </View>
       <Text style={[styles.lineAmount, { color: palette.text }]}>
@@ -312,7 +314,7 @@ function AmountRow({
       <Text
         style={[
           styles.amountValue,
-          { color: palette.text, fontWeight: strong ? '800' : '600' },
+          { color: palette.text, fontWeight: strong ? '800' : '700' },
         ]}
       >
         {value}
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pillText: {
     fontSize: 12,

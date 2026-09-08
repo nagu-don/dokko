@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/i18n';
 import type { Role } from '@/types';

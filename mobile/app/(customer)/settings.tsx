@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { BrandTopBar, BRAND_BG } from '@/components/BrandTopBar';
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
 
   const [preferred, setPreferred] = useState<Dropoff | null>(null);
   const [picking, setPicking] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     void loadPreferredDropoff().then(setPreferred);
@@ -82,26 +84,39 @@ export default function SettingsScreen() {
           <View style={styles.dropoffRow}>
             <Text style={[styles.label, { color: palette.text }]}>{t(lang, 'preferredDropoff')}</Text>
             <Text style={[styles.dropoffValue, { color: palette.textMuted }]}>
-              {preferred?.label ? preferred.label : t(lang, 'notSet')}
+              {preferred?.name ? preferred.name : preferred?.label ? preferred.label : t(lang, 'notSet')}
             </Text>
-            <Pressable
-              onPress={() => setPicking(true)}
-              accessibilityRole="button"
-              accessibilityLabel={t(lang, 'changeOnMap')}
-              style={({ pressed }) => [styles.changeBtn, { opacity: pressed ? 0.6 : 1 }]}
-            >
-              <Text style={[styles.changeBtnText, { color: palette.primary }]}>{t(lang, 'changeOnMap')}</Text>
-            </Pressable>
+            {preferred ? (
+              <Pressable
+                onPress={() => setPicking(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t(lang, 'changeOnMap')}
+                style={({ pressed }) => [styles.changeBtn, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Text style={[styles.changeBtnText, { color: palette.primary }]}>{t(lang, 'changeOnMap')}</Text>
+              </Pressable>
+            ) : null}
           </View>
+          <Pressable
+            onPress={() => setAdding(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t(lang, 'addNewLocation')}
+            style={({ pressed }) => [styles.addBtn, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.addBtnText, { color: palette.primary }]}>{t(lang, 'addNewLocation')}</Text>
+          </Pressable>
         </View>
       </ScrollView>
 
       <LocationPickerModal
-        visible={picking}
-        initial={preferred}
+        visible={picking || adding}
+        initial={adding ? null : preferred}
         title={t(lang, 'selectPreferredTitle')}
         onConfirm={savePreferred}
-        onCancel={() => setPicking(false)}
+        onCancel={() => {
+          setPicking(false);
+          setAdding(false);
+        }}
       />
     </View>
   );
@@ -196,6 +211,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   changeBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  addBtn: {
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  addBtnText: {
     fontSize: 14,
     fontWeight: '700',
   },

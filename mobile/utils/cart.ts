@@ -1,5 +1,6 @@
 import type { CartItem, Item } from '@/types';
 import { round1, round2 } from '@/utils/format';
+import { isKgUnit } from '@/utils/itemDisplay';
 
 /**
  * Pure cart derivations shared by the cart screen and the badge. Kept
@@ -15,12 +16,27 @@ export interface ResolvedCartLine {
   live?: Item;
 }
 
-export function cartTotalKg(lines: CartItem[]): number {
+/** Sum of ALL line quantities (each in its own unit). */
+export function cartTotalQty(lines: CartItem[]): number {
   return round1(lines.reduce((sum, l) => sum + l.quantityKg, 0));
 }
 
 export function cartLineCount(lines: CartItem[]): number {
   return lines.length;
+}
+
+/** True when every line is a weight-based (kg) item. */
+export function cartAllKg(lines: CartItem[]): boolean {
+  return lines.length > 0 && lines.every((l) => isKgUnit(l));
+}
+
+/**
+ * Badge value: total kg when every line is kg; otherwise the number of
+ * distinct lines (summing mixed units has no meaning).
+ */
+export function cartBadgeValue(lines: CartItem[]): number {
+  if (lines.length === 0) return 0;
+  return cartAllKg(lines) ? cartTotalQty(lines) : lines.length;
 }
 
 /** Price charged on the screen: live max price when available, else snapshot. */

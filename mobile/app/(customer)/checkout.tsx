@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, FormError, FormTextField } from '@/components/form';
@@ -13,10 +14,11 @@ import { t, iname, money, num } from '@/i18n';
 import { placeOrder } from '@/services/orders';
 import { useCartStore } from '@/stores/cartStore';
 import {
+  cartAllKg,
   cartLinePrice,
   cartLineTotal,
   cartSubtotal,
-  cartTotalKg,
+  cartTotalQty,
   resolveCartLines,
   type ResolvedCartLine,
 } from '@/utils/cart';
@@ -218,13 +220,19 @@ export default function CheckoutScreen() {
     content = <LoadingView label={t(lang, 'checkoutLoading')} />;
   } else {
     content = (
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-        {errorKind === 'error' ? <FormError message={formError} /> : null}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {errorKind === 'error' ? <FormError message={formError} /> : null}
 
-        {errorKind === 'uncertain' ? (
+          {errorKind === 'uncertain' ? (
           <View style={[styles.uncertainCard, { borderColor: palette.danger }]}>
             <Text style={[styles.uncertainTitle, { color: palette.danger }]}>
               {t(lang, 'orderUncertainTitle')}
@@ -285,14 +293,15 @@ export default function CheckoutScreen() {
             <View style={styles.locationMain}>
               {location ? (
                 <>
-                  <Text style={[styles.locationCoords, { color: palette.text }]}>
-                    {num(lang, location.lat.toFixed(5))}, {num(lang, location.lng.toFixed(5))}
-                  </Text>
                   {location.label ? (
                     <Text style={[styles.locationLabel, { color: palette.textMuted }]} numberOfLines={2}>
                       {location.label}
                     </Text>
-                  ) : null}
+                  ) : (
+                    <Text style={[styles.locationCoords, { color: palette.text }]}>
+                      {num(lang, location.lat.toFixed(5))}, {num(lang, location.lng.toFixed(5))}
+                    </Text>
+                  )}
                 </>
               ) : (
                 <Text style={[styles.locationEmpty, { color: palette.textMuted }]}>
@@ -319,7 +328,10 @@ export default function CheckoutScreen() {
           <View style={[styles.summaryDivider, { borderColor: palette.border }]} />
           <View style={styles.subtotalRow}>
             <Text style={[styles.subtotalLabel, { color: palette.text }]}>
-              {t(lang, 'subtotalLabel')} ({num(lang, cartTotalKg(lines).toFixed(1))} {t(lang, 'unitKg')})
+              {t(lang, cartAllKg(lines) ? 'subtotalWithCount' : 'subtotalWithItems', {
+                qty: num(lang, cartTotalQty(lines).toFixed(1)),
+                count: num(lang, lines.length),
+              })}
             </Text>
             <Text style={[styles.subtotalValue, { color: palette.text }]}>{money(lang, subtotal)}</Text>
           </View>
@@ -333,7 +345,8 @@ export default function CheckoutScreen() {
           onPress={() => void handlePlaceOrder()}
           loading={submitting}
         />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -365,6 +378,9 @@ export default function CheckoutScreen() {
 
 const styles = StyleSheet.create({
   screen: {
+    flex: 1,
+  },
+  kav: {
     flex: 1,
   },
   navBar: {

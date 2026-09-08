@@ -4,22 +4,28 @@ import {
   completeRequest,
   getAcceptedRequests,
   getCompletedRequests,
+  getItemsSummary,
   getNewRequests,
+  getNotices,
   getVendorProfile,
+  hideSummaryItems,
   updateVendorLocation,
+  updateVendorPayout,
 } from '@/services/vendors';
-import type { LatLng, UpdateVendorLocationInput, VendorPresentedOrder, VendorProfile } from '@/types';
+import type { LatLng, UpdateVendorLocationInput, UpdateVendorPayoutInput, VendorNotice, VendorPresentedOrder, VendorProfile, VendorSummaryItem } from '@/types';
 
 /**
  * Vendor server state (Phases 9–10). Tenant isolation mirrors the customer
  * side: every screen here reads these shared keys so one request is shared,
  * and a single mutation invalidates every dependent query.
  *
- * Polling: the vendor web app loads /api/vendors/requests/new ONCE on mount —
- * there is NO interval polling (verified in vendor/src/pages/NewRequests).
- * So this list is refreshed on mount/focus + pull-to-refresh only. The
- * backend also exposes no priorityExpiresAt in `presentOrder`, so the app
- * must never locally expire a request.
+ * Polling: NONE. The incoming feed is refreshed only when the vendor asks —
+ * pull-to-refresh on the dashboard / the explicit Refresh button on the
+ * request detail screen. It is never polled (no refetchInterval) and never
+ * auto-refetched on mount, so the page cannot refresh behind the user's back.
+ * Stage/window expiry stays server-authoritative: the backend exposes no
+ * priorityExpiresAt in `presentOrder`, so the app never locally expires a
+ * request; it only refetches when prompted.
  *
  * Phase 10 adds:
  *  - accept mutation → PATCH /api/vendors/requests/accept/:id
@@ -56,7 +62,7 @@ export function useVendorRequests() {
     queryKey: vendorRequestsQueryKey,
     queryFn: getNewRequests,
     staleTime: 10_000,
-    refetchOnMount: 'always',
+    refetchOnMount: false,
     retry: 1,
   });
 }
@@ -76,6 +82,17 @@ export function useUpdateVendorLocation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: vendorProfileQueryKey });
       queryClient.invalidateQueries({ queryKey: vendorRequestsQueryKey });
+    },
+  });
+}
+
+/** Save vendor payout info; refreshes the profile cache. */
+export function useUpdateVendorPayout() {
+  const queryClient = useQueryClient();
+  return useMutation<VendorProfile, unknown, UpdateVendorPayoutInput>({
+    mutationFn: updateVendorPayout,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: vendorProfileQueryKey });
     },
   });
 }
@@ -164,5 +181,56 @@ export function useCompleteRequest() {
       queryClient.invalidateQueries({ queryKey: vendorRequestsQueryKey });
       queryClient.invalidateQueries({ queryKey: vendorCompletedQueryKey });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Items Needed
+// ---------------------------------------------------------------------------
+
+const vendorItemsQueryKey = ['vendor', 'items-summary'] as const;
+
+/** GET /api/vendors/summary — aggregated items this vendor still needs to deliver. */
+export function useItemsSummary() {
+  return useQuery<{ items: VendorSummaryItem[]; grandTotal: number }>({
+    queryKey: vendorItemsQueryKey,
+    queryFn: getItemsSummary,
+    staleTime: 15_000,
+    refetchOnMount: 'always',
+    retry: 1,
+  });
+}
+
+/** POST /api/vendors/summary/hide-items — mark checked items as obtained. */
+export function useHideItems() {
+  const queryClient = useQueryClient();
+  return useMutation<void, unknown, string[]>({
+    mutationFn: hideSummaryItems,
+    retry: 0,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: vendorItemsQueryKey });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Notices
+// ---------------------------------------------------------------------------
+
+const vendorNoticesQueryKey = ['vendor', 'notices'] as const;
+
+/**
+ * GET /api/vendors/notices — admin broadcast notices for all vendors.
+ *
+ * Read-only, nothing invalidates it locally (only admins post notices).
+ * Refresh on mount/focus + pull-to-refresh; no polling.
+ */
+export function useVendorNotices() {
+  return useQuery<VendorNotice[]>({
+    queryKey: vendorNoticesQueryKey,
+    queryFn: getNotices,
+    staleTime: 30_000,
+    refetchOnMount: 'always',
+    retry: 1,
   });
 }

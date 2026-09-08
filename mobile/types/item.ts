@@ -70,19 +70,21 @@ export interface SelectedItem {
 /**
  * A persisted customer-cart line. It extends SelectedItem (so `itemId` is the
  * canonical backend `_id` and `price` is the `maxPrice` snapshot taken when
- * the item was added) plus the kg quantity and the image filename.
+ * the item was added) plus the quantity (in the item's own unit) and the
+ * image filename.
  *
  * STALE-ITEM POLICY: the line keeps its own snapshot (names/unit/price/image)
  * so the cart renders even when the catalog is offline. When the approved
  * catalog cache still contains the `itemId`, the live item's `maxPrice`,
  * name and image are overlaid at render time; lines whose id vanished from
  * the catalog keep their snapshot and remain countable (the badge sums all
- * stored quantities, matching the web). The backend re-validates existence
+ * stored quantities of all-kg carts, or counts lines for mixed-unit carts,
+ * matching the web). The backend re-validates existence
  * and re-snapshots the price at ORDER PLACEMENT, so a stale client snapshot
  * can never create a phantom order or overcharge anyone.
  */
 export interface CartItem extends SelectedItem {
-  /** Quantity in kg: 1-decimal-positive, removed when it reaches 0. */
+  /** Quantity in the item's OWN unit: kg items 1-dp, count units whole. */
   quantityKg: number;
   /** Filename served under `${API_BASE}/images/<filename>` (snapshot). */
   image?: string;

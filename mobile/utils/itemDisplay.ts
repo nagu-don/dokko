@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { BULK_STEP, STEP } from '@/utils/format';
 import type { AppLang } from '@/stores/settingsStore';
 import type { Item, ItemGroup, SelectedItem } from '@/types';
 
@@ -16,6 +17,22 @@ export function unitOf(
   const fallback = t(lang, 'unitKg');
   if (!item) return fallback;
   return lang === 'np' ? item.unitNep || fallback : item.unitEng || fallback;
+}
+
+const WEIGHT_UNITS = new Set(['', 'kg', 'kilogram', 'kilo', 'किलो', 'के.जी.', 'केजी']);
+
+/** Weight-based units step in kg; count-based units (dozen, piece, L) step in whole numbers. */
+export function isKgUnit(item: { unitEng?: string; unitNep?: string } | undefined): boolean {
+  if (!item) return true;
+  return WEIGHT_UNITS.has((item.unitEng || item.unitNep || 'kg').trim().toLowerCase());
+}
+
+/** Stepper steps for an item: 0.1/1 kg for weights, 1/1 for count units. */
+export function qtySteps(item: { unitEng?: string; unitNep?: string } | undefined): {
+  fine: number;
+  coarse: number;
+} {
+  return isKgUnit(item) ? { fine: STEP, coarse: BULK_STEP } : { fine: 1, coarse: 1 };
 }
 
 /**

@@ -19,6 +19,7 @@ import {
   listVendors,
 } from "../controllers/vendorController.js";
 import { initiatePayment, getPaymentStatus, triggerVerification, recordCashPayment, cancelPayment, revokeCashPayment, completeMockPayment } from "../controllers/paymentController.js";
+import { listVendorNotices } from "../controllers/noticeController.js";
 import { authVendor, authAdmin } from "../middleware/authMiddleware.js";
 
 const vendorRouter = express.Router();
@@ -54,5 +55,8 @@ vendorRouter.post("/payments/mock/:paymentId/complete", authVendor, completeMock
 vendorRouter.get("/summary", authVendor, itemsSummary);
 vendorRouter.post("/summary/hide-items", authVendor, hideItems);
 vendorRouter.post("/summary/unhide-items", authVendor, unhideItems);
+
+// ── broadcast notices from admin ─────────────────────────────
+vendorRouter.get("/notices", authVendor, listVendorNotices);
 
 export default vendorRouter;

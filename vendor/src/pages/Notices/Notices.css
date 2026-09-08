@@ -1,0 +1,42 @@
+/* ---- notices page (purple) ---- */
+.vendor-section.theme-notices {
+  border-top: 3px solid #722ed1;
+}
+
+.vendor-section.theme-notices h3 {
+  color: #722ed1;
+}
+
+.theme-notices .notice-card {
+  border-left: 4px solid #722ed1;
+}
+
+/* ---- notice cards ---- */
+.notice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
+.notice-title {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.notice-body {
+  color: var(--body-text);
+  font-size: 0.86rem;
+  margin: 2px 0 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notice-date {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 6px;
+}

@@ -158,7 +158,7 @@ assert(SETTLEMENT_STATUSES.includes("failed"), "SETTLEMENT_STATUSES has failed")
 assert(SETTLEMENT_STATUSES.includes("cancelled"), "SETTLEMENT_STATUSES has cancelled");
 assert(SETTLEMENT_STATUSES.length === 5, "SETTLEMENT_STATUSES has exactly 5 values");
 
-assert(DELIVERY_CHARGE === 50, "DELIVERY_CHARGE is 50");
+assert(DELIVERY_CHARGE === 25, "DELIVERY_CHARGE is the base band (25)");
 assert(ADDITIONAL_CHARGES === 15, "ADDITIONAL_CHARGES is 15");
 
 // ──────────────────────────────────────────────────────────────

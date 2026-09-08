@@ -1,8 +1,9 @@
 import mongoose from 'mongoose'
-import { PRIORITY_DELIVERY_CHARGES, PRIORITY_CONFIG } from "../config/priorityConfig.js";
+import { PRIORITY_CONFIG } from "../config/priorityConfig.js";
 
 // ── legacy constants (kept for backward-compat refs) ─────────
-export const DELIVERY_CHARGE = PRIORITY_CONFIG.NEAR_CHARGE;
+// DELIVERY_CHARGE is the base (nearest) band of the distance tariff.
+export const DELIVERY_CHARGE = PRIORITY_CONFIG.DELIVERY_TARIFF_BANDS[0]?.charge ?? 25;
 export const ADDITIONAL_CHARGES = 15;
 
 const ORDER_STATUSES = ["Pending", "Processing", "Delivered", "Cancelled"];
@@ -29,8 +30,13 @@ const orderItemSchema = new mongoose.Schema({
     // Nepali name snapshot so vendors can show item names in Nepali
     nameNep: {type: String, default: ""},
     quantity: {type: Number, required: true, min: 0.1},
-    // max price per kg at the time of ordering
-    priceAtOrder: {type: Number, required: true}
+    // max price per unit at the time of ordering (unit is per full quantity
+    // range of an item, e.g. kg, L, dozen)
+    priceAtOrder: {type: Number, required: true},
+    // unit snapshot (itemModel.unitEng/unitNep) so vendors can show the real
+    // unit instead of assuming kg for older orders
+    unitEng: {type: String, default: ""},
+    unitNep: {type: String, default: ""}
 }, {_id: false});
 
 const orderSchema = new mongoose.Schema({
@@ -44,7 +50,8 @@ const orderSchema = new mongoose.Schema({
 
     // ── delivery charge ──────────────────────────────────────
     // null while the priority search is in progress; set to a
-    // concrete value (50 / 75 / 120) only after a vendor accepts
+    // concrete value computed from the delivery distance
+    // (see config/priorityConfig.js) only after a vendor accepts
     deliveryCharge: {type: Number, default: null, min: 0},
 
     additionalCharges: {type: Number, required: true, default: ADDITIONAL_CHARGES},
@@ -87,4 +94,4 @@ orderSchema.index({ paymentStatus: 1 });
 const orderModel = mongoose.models.order || mongoose.model("order", orderSchema);
 
 export default orderModel;
-export {ORDER_STATUSES, PAYMENT_STATUSES, PAYMENT_METHODS, PRIORITY_STAGES, PRIORITY_DELIVERY_CHARGES};
+export {ORDER_STATUSES, PAYMENT_STATUSES, PAYMENT_METHODS, PRIORITY_STAGES};

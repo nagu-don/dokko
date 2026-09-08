@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { Context, STEP, BULK_STEP } from '../../context/Context'
+import { Context, isKgUnit, qtySteps } from '../../context/Context'
 import HoldButton from '../../components/HoldButton/HoldButton'
 import Pagination from '../../components/Pagination/Pagination'
 import { buildGroups, searchGroups, MATCH_THRESHOLD } from '../../utils/search'
@@ -22,7 +22,7 @@ const Explore = () => {
     items, url, cartItems,
     addToCart, decreaseQuantity, setQuantity, removeItemCompletely,
     activeSearch, clearSearch,
-    t, money, num, lang,
+    t, money, num, lang, iunit,
   } = useContext(Context);
 
   // the item/group name shown follows the selected language
@@ -113,9 +113,10 @@ const Explore = () => {
   const groupTotal = (variants) =>
     round1(variants.reduce((sum, v) => sum + (cartItems[v._id] || 0), 0));
 
-  // allow only numbers with at most one decimal place while typing
+  // kg items allow one decimal place while typing; count-based items are whole
   const handleDraftChange = (id, raw) => {
-    if (raw === '' || /^\d*\.?\d?$/.test(raw)) {
+    const pattern = isKgUnit(items.find((i) => i._id === id)) ? /^\d*\.?\d?$/ : /^\d*$/;
+    if (raw === '' || pattern.test(raw)) {
       setDrafts((prev) => ({ ...prev, [id]: raw }));
     }
   };
@@ -167,6 +168,7 @@ const Explore = () => {
             const total = groupTotal(group.variants);
             const isOpen = openGroups.has(group.key);
             const cover = group.variants[0];
+            const coverIsKg = isKgUnit(cover);
 
             return (
               <div className={`item-container ${isOpen ? 'open' : ''}`} key={group.key}>
@@ -183,14 +185,14 @@ const Explore = () => {
                   />
                   {total > 0 && (
                     <span className='cart-badge'>
-                      {num(fmt(total))} {t('unitKg')}
+                      {num(coverIsKg ? fmt(total) : total)} {iunit(cover)}
                     </span>
                   )}
 
                   <div className='item-text'>
                     <h2>{groupName(group)}</h2>
                     <p className='group-price'>
-                      {t('fromPriceKg', { price: money(groupBestPrice(group.variants)) })}
+                      {t('fromPriceKg', { price: money(groupBestPrice(group.variants)), unit: iunit(cover) })}
                     </p>
                     <p className='variant-count'>
                       {num(group.variants.length)}{' '}
@@ -212,7 +214,7 @@ const Explore = () => {
                           <div className='variant-top'>
                             <span className='variant-name'>{variantName(item)}</span>
                             <span className='variant-price'>
-                              {money(item.maxPrice)}{t('perKgShort')}
+                              {money(item.maxPrice)}/{iunit(item)}
                             </span>
                           </div>
 
@@ -220,8 +222,8 @@ const Explore = () => {
                             <HoldButton
                               className='remove-button'
                               onStep={(amount) => decreaseQuantity(item._id, amount)}
-                              step={STEP}
-                              bulkStep={BULK_STEP}
+                              step={qtySteps(item).fine}
+                              bulkStep={qtySteps(item).bulk}
                               disabled={!inCart}
                               aria-label={t('decreaseAria', { name: variantName(item) })}
                             >
@@ -231,22 +233,22 @@ const Explore = () => {
                             <div className='qty-input-wrap'>
                               <input
                                 type='text'
-                                inputMode='decimal'
+                                inputMode={isKgUnit(item) ? 'decimal' : 'numeric'}
                                 className='qty-input'
                                 value={value}
-                                placeholder='0.0'
+                                placeholder={isKgUnit(item) ? '0.0' : '0'}
                                 onChange={(e) => handleDraftChange(item._id, e.target.value)}
                                 onBlur={() => commitDraft(item._id)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                               />
-                              <span className='qty-unit'>{t('unitKg')}</span>
+                              <span className='qty-unit'>{iunit(item)}</span>
                             </div>
 
                             <HoldButton
                               className='add-button'
                               onStep={(amount) => addToCart(item._id, amount)}
-                              step={STEP}
-                              bulkStep={BULK_STEP}
+                              step={qtySteps(item).fine}
+                              bulkStep={qtySteps(item).bulk}
                               aria-label={t('increaseAria', { name: variantName(item) })}
                             >
                               +
@@ -256,7 +258,7 @@ const Explore = () => {
                           <div className='variant-actions'>
                             <button
                               className='add-to-cart'
-                              onClick={() => addToCart(item._id, 1)}
+                              onClick={() => addToCart(item._id, qtySteps(item).bulk)}
                               disabled={inCart}
                             >
                               {inCart ? t('inCart') : t('addToCart')}

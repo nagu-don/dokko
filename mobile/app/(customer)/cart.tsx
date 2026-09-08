@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ItemImage } from '@/components/catalog';
@@ -12,13 +13,15 @@ import { t, money, num, iname } from '@/i18n';
 import { useCartStore } from '@/stores/cartStore';
 import { radius, spacing } from '@/theme';
 import {
+  cartAllKg,
   cartLinePrice,
   cartLineTotal,
   cartSubtotal,
-  cartTotalKg,
+  cartTotalQty,
   resolveCartLines,
 } from '@/utils/cart';
-import { unitOf } from '@/utils/itemDisplay';
+import { isKgUnit, unitOf } from '@/utils/itemDisplay';
+import { qtyDisplay } from '@/utils/format';
 import type { ResolvedCartLine } from '@/utils/cart';
 
 /**
@@ -63,13 +66,17 @@ export default function CartScreen() {
     []
   );
 
-  const footer = useMemo(
-    () => (
+  const footer = useMemo(() => {
+    const allKg = cartAllKg(lines);
+    return (
       <View
         style={[styles.summary, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>
-          {t(lang, 'subtotalWithCount', { qty: num(lang, cartTotalKg(lines).toFixed(1)) })}
+          {t(lang, allKg ? 'subtotalWithCount' : 'subtotalWithItems', {
+            qty: num(lang, cartTotalQty(lines).toFixed(1)),
+            count: num(lang, lines.length),
+          })}
         </Text>
         <Text style={[styles.summaryValue, { color: palette.text }]}>{money(lang, subtotal)}</Text>
         <Text style={[styles.checkoutNote, { color: palette.textMuted }]}>
@@ -77,9 +84,8 @@ export default function CartScreen() {
         </Text>
         <Button title={t(lang, 'goToCheckout')} onPress={() => router.push('/checkout')} />
       </View>
-    ),
-    [lang, palette, lines, subtotal]
-  );
+    );
+  }, [lang, palette, lines, subtotal]);
 
   let content;
 
@@ -147,6 +153,7 @@ const CartRow = memo(
     const { live } = line;
     const displayName = iname(lang, live ?? line.line);
     const unit = unitOf(lang, live ?? line.line);
+    const isKg = isKgUnit(line.line);
     const price = cartLinePrice(line.line, live);
     const qty = line.line.quantityKg;
 
@@ -180,7 +187,7 @@ const CartRow = memo(
               <Text style={[styles.qtyBtnText, { color: palette.text }]}>−</Text>
             </Pressable>
             <View style={styles.qtyValue}>
-              <Text style={[styles.qtyText, { color: palette.text }]}>{num(lang, qty.toFixed(1))}</Text>
+              <Text style={[styles.qtyText, { color: palette.text }]}>{num(lang, qtyDisplay(qty, isKg))}</Text>
               <Text style={[styles.qtyUnit, { color: palette.textMuted }]}>{unit}</Text>
             </View>
             <Pressable

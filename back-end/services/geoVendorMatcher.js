@@ -1,5 +1,5 @@
 import vendorModel from "../models/vendorModel.js";
-import { EARTH_RADIUS_KM, STAGE_RADIUS_KM } from "../config/priorityConfig.js";
+import { DELIVERY_MAX_KM, EARTH_RADIUS_KM, STAGE_RADIUS_KM } from "../config/priorityConfig.js";
 
 // ── constants ──────────────────────────────────────────────────
 // Earth's mean radius in kilometres.  Distances are computed with the
@@ -87,32 +87,6 @@ const findVendorsWithinRadius = async (dropoffCoords, radiusKm) => {
   return shaped;
 };
 
-// ── internal: closest vendor (no radius cap) ───────────────────
-//
-// Returns the single nearest eligible vendor using `$nearSphere`
-// (index-backed, returns results ordered nearest-first) without a
-// maxDistance cap.
-//
-// @param {number[]} dropoffCoords  — [lng, lat] GeoJSON coordinates
-// @returns {Promise<Object|null>}  — nearest vendor or null
-const findClosestVendor = async (dropoffCoords) => {
-  const results = await vendorModel
-    .find({
-      ...buildEligibilityFilter(),
-      location: {
-        $nearSphere: {
-          $geometry: { type: "Point", coordinates: dropoffCoords },
-        },
-      },
-    })
-    .select({ _id: 1, name: 1, phone: 1, location: 1 })
-    .limit(1)
-    .lean();
-
-  const v = results[0];
-  return v ? shapeVendor(v, dropoffCoords) : null;
-};
-
 // ── public API ─────────────────────────────────────────────────
 
 /**
@@ -121,6 +95,10 @@ const findClosestVendor = async (dropoffCoords) => {
  * Returns vendors (and their distance from the drop-off) that are
  * eligible for the given stage.  This function does NOT calculate
  * or assign the delivery charge — that is the caller's responsibility.
+ *
+ * SEARCHING_CLOSEST returns the single nearest eligible vendor within
+ * DELIVERY_MAX_KM of the drop-off; when none exists, no vendor is
+ * offered (order ends as NO_VENDOR_AVAILABLE).
  *
  * @param {string}  stage        — "SEARCHING_0_5KM" | "SEARCHING_1KM" | "SEARCHING_CLOSEST"
  * @param {number[]} dropoffCoords — [lng, lat] GeoJSON coordinates of the customer's drop-off
@@ -158,8 +136,10 @@ export const findEligibleVendors = async (stage, dropoffCoords) => {
     }
 
     case "SEARCHING_CLOSEST": {
-      const vendor = await findClosestVendor(dropoffCoords);
-      return { vendors: vendor ? [vendor] : [], stage };
+      // Single nearest eligible vendor within the service area cap —
+      // beyond DELIVERY_MAX_KM there is no service (NO_VENDOR_AVAILABLE).
+      const vendors = await findVendorsWithinRadius(dropoffCoords, DELIVERY_MAX_KM);
+      return { vendors: vendors.slice(0, 1), stage };
     }
 
     default:

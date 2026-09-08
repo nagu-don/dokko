@@ -4,7 +4,7 @@ import { useUi } from '../../context/UiContext';
 import { getAuthHeaders, isAuthError } from '../../utils/api';
 
 const NewRequests = ({ url, onLogout }) => {
-  const { t, tMsg, money, num, iname } = useUi();
+  const { t, tMsg, money, num, iname, iunit } = useUi();
 
   const [orders, setOrders] = useState([]);
   const [notice, setNotice] = useState(null);
@@ -77,7 +77,7 @@ const NewRequests = ({ url, onLogout }) => {
                 <ul className='item-lines'>
                   {order.items.map((row, i) => (
                     <li key={i}>
-                      {num(row.quantity)} {t('unitKg')} × {iname(row)} @ {money(row.priceAtOrder)}/{t('unitKg')}
+                      {num(row.quantity)} {iunit(row)} × {iname(row)} @ {money(row.priceAtOrder)}/{iunit(row)}
                     </li>
                   ))}
                 </ul>

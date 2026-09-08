@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t, money, num, iname } from '@/i18n';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import type { VendorPresentedOrder } from '@/types';
 import { formatOrderDate } from '@/utils/date';
+import { unitOf } from '@/utils/itemDisplay';
 import { vendorOrderStatusLabel, vendorPaymentStatusLabel } from '@/utils/vendorModel';
 
 interface VendorOrderCardProps {
@@ -66,7 +68,7 @@ export function VendorOrderCard({
         {order.items.slice(0, 4).map((row, i) => (
           <View key={i} style={styles.itemLine}>
             <Text style={[styles.itemName, { color: palette.text }]} numberOfLines={1}>
-              {num(lang, row.quantity)} × {iname(lang, row)}
+              {num(lang, row.quantity)} {unitOf(lang, row)} × {iname(lang, row)}
             </Text>
             <Text style={[styles.itemMeta, { color: palette.textMuted }]}>
               {money(lang, row.quantity * row.priceAtOrder)}
@@ -108,23 +110,23 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   code: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '800',
   },
   pill: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   date: {
-    fontSize: 12,
+    fontSize: fs(12),
   },
   customer: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   itemLines: {
     gap: spacing.xxs,
@@ -139,15 +141,15 @@ const styles = StyleSheet.create({
   },
   itemName: {
     flex: 1,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '600',
   },
   itemMeta: {
-    fontSize: 12,
+    fontSize: fs(12),
     textAlign: 'right',
   },
   moreItems: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   footerRow: {
@@ -159,11 +161,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   payment: {
-    fontSize: 12,
+    fontSize: fs(12),
     flexShrink: 1,
   },
   amount: {
-    fontSize: 15,
+    fontSize: fs(15),
     fontWeight: '800',
   },
 });

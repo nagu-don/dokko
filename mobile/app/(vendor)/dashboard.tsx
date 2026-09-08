@@ -1,21 +1,14 @@
-import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { Redirect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
 import { LoadingView } from '@/components/LoadingView';
-import { LocationPickerModal } from '@/components/location';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import {
-  useUpdateVendorLocation,
-  useVendorProfile,
-  useVendorRequests,
-  useVendorAcceptedOrders,
-  useVendorCompletedOrders,
-} from '@/hooks/useVendorRequests';
+import { VendorNavBar } from '@/components/vendor';
+import { useVendorProfile, useVendorRequests } from '@/hooks/useVendorRequests';
 import { t, money, num, iname } from '@/i18n';
-import { useAuthStore } from '@/stores/authStore';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import { isVendorReady, vendorDistanceLabel } from '@/utils/vendorModel';
 
 /**
@@ -29,46 +22,20 @@ import { isVendorReady, vendorDistanceLabel } from '@/utils/vendorModel';
  * a local switch.
  *
  * The incoming request list is read from GET /api/vendors/requests/new
- * (server-filtered). The vendor web app does NOT poll this endpoint, so we
- * refresh on mount/focus and via pull-to-refresh only — no interval.
+ * (server-filtered). It is refreshed only on user action — pull-to-refresh or
+ * the Refresh button on the detail screen — never polled or auto-refetched.
  * Distance/badges come precomputed from the server; the app never recomputes.
  */
 export default function VendorDashboardScreen() {
   const { palette, lang } = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
-  const user = useAuthStore((s) => s.user);
 
   const profileQuery = useVendorProfile();
   const requestsQuery = useVendorRequests();
-  const activeOrdersQuery = useVendorAcceptedOrders();
-  const completedOrdersQuery = useVendorCompletedOrders();
-  const locationMutation = useUpdateVendorLocation();
-
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [saveError, setSaveError] = useState(false);
 
   const profile = profileQuery.data;
   const requests = requestsQuery.data ?? [];
-  const activeOrders = activeOrdersQuery.data ?? [];
-  const completedOrders = completedOrdersQuery.data ?? [];
-
-  const handleSignOut = async () => {
-    await logout();
-    router.replace('/login');
-  };
-
-  const handleLocationPick = async (dropoff: { lat: number; lng: number }) => {
-    setPickerOpen(false);
-    setSaveError(false);
-    locationMutation.mutate(
-      { lat: dropoff.lat, lng: dropoff.lng },
-      {
-        onError: () => setSaveError(true),
-      }
-    );
-  };
 
   const refreshing = profileQuery.isRefetching || requestsQuery.isRefetching;
   const onRefresh = () => {
@@ -90,7 +57,6 @@ export default function VendorDashboardScreen() {
   } else if (!isVendorReady(profile)) {
     content = <Redirect href="/onboarding" />;
   } else {
-    const location = profile.location;
     content = (
       <ScrollView
         style={styles.scroll}
@@ -99,53 +65,6 @@ export default function VendorDashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.primary} />
         }
       >
-        <View style={[styles.statusCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <View style={styles.pillRow}>
-            <View style={[styles.readyPill, { backgroundColor: palette.primary }]}>
-              <Text style={[styles.readyPillText, { color: palette.primaryText }]}>
-                {t(lang, 'vendorReadyPill')}
-              </Text>
-            </View>
-            <Text style={[styles.signedInAs, { color: palette.textMuted }]}>
-              {t(lang, 'vendorSignInAs', { name: user?.name ?? profile.name })}
-            </Text>
-          </View>
-
-          <Row label={t(lang, 'vendorWorkingLocation')}>
-            <View style={styles.rowRight}>
-              {location?.lat != null && location?.lng != null ? (
-                <Text style={[styles.rowValue, { color: palette.text }]}>
-                  {num(lang, location.lat.toFixed(5))}, {num(lang, location.lng.toFixed(5))}
-                </Text>
-              ) : null}
-              <Pressable
-                onPress={() => {
-                  setSaveError(false);
-                  setPickerOpen(true);
-                }}
-                accessibilityRole="button"
-                style={({ pressed }) => [styles.changelink, { opacity: pressed ? 0.6 : 1 }]}
-              >
-                <Text style={[styles.changeText, { color: palette.primary }]}>
-                  {t(lang, 'vendorChangeLocation')}
-                </Text>
-              </Pressable>
-            </View>
-          </Row>
-
-          {saveError || locationMutation.isError ? (
-            <Text style={[styles.saveError, { color: palette.danger }]}>
-              {t(lang, 'vendorLocationSaveError')}
-            </Text>
-          ) : null}
-
-          <Row label={t(lang, 'vendorAvailabilityLabel')}>
-            <Text style={[styles.note, { color: palette.textMuted }]}>
-              {t(lang, 'vendorAvailabilityNote')}
-            </Text>
-          </Row>
-        </View>
-
         <View style={styles.sectionHead}>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>
             {t(lang, 'vendorRequestsSection')}
@@ -209,13 +128,6 @@ export default function VendorDashboardScreen() {
                       </Text>
                     </View>
                   )}
-                  {order.isClosestVendor ? (
-                    <View style={[styles.badge, { backgroundColor: palette.primary }]}>
-                      <Text style={[styles.badgeText, { color: palette.primaryText }]}>
-                        {t(lang, 'vendorClosestBadge')}
-                      </Text>
-                    </View>
-                  ) : null}
                 </View>
 
                 <View style={styles.itemLines}>
@@ -239,98 +151,17 @@ export default function VendorDashboardScreen() {
             ))}
           </>
         )}
-
-        <View style={styles.sectionHead}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>
-            {t(lang, 'vendorOrdersDashboardSection')}
-          </Text>
-        </View>
-
-        <View style={styles.ordersRow}>
-          <Pressable
-            onPress={() => router.push('/active')}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.orderNavCard,
-              { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            <Text style={[styles.orderNavTitle, { color: palette.text }]}>
-              {t(lang, 'vendorOrdersDashboardActive')}
-            </Text>
-            <Text style={[styles.orderNavCount, { color: palette.textMuted }]}>
-              {t(lang, 'vendorOrdersDashboardActiveCount', { count: num(lang, activeOrders.length) })}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/completed')}
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.orderNavCard,
-              { backgroundColor: palette.surface, borderColor: palette.border, opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            <Text style={[styles.orderNavTitle, { color: palette.text }]}>
-              {t(lang, 'vendorOrdersDashboardCompleted')}
-            </Text>
-            <Text style={[styles.orderNavCount, { color: palette.textMuted }]}>
-              {t(lang, 'vendorOrdersDashboardCompletedCount', { count: num(lang, completedOrders.length) })}
-            </Text>
-          </Pressable>
-        </View>
-
-        <Text style={[styles.externalNote, { color: palette.textMuted }]}>
-          {t(lang, 'vendorExternalNote')}
-        </Text>
       </ScrollView>
     );
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'vendorDashboardTitle')}
-        </Text>
-        <Pressable
-          onPress={handleSignOut}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'signOut')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.signOut, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.signOutText, { color: palette.danger }]}>{t(lang, 'signOut')}</Text>
-        </Pressable>
-      </View>
-      {content}
-
-      <LocationPickerModal
-        visible={pickerOpen}
-        initial={profile?.location ?? null}
-        title={t(lang, 'vendorSetLocationTitle')}
-        hint={t(lang, 'vendorSetLocationHint')}
-        showNote={false}
-        persistOnConfirm={false}
-        onConfirm={handleLocationPick}
-        onCancel={() => setPickerOpen(false)}
+    <View style={[styles.screen, { backgroundColor: palette.screenGreen }]}>
+      <VendorNavBar
+        title={t(lang, 'vendorDashboardTitle')}
+        activeSection="dashboard"
       />
-    </View>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  const { palette } = useAppTheme();
-  return (
-    <View style={styles.row}>
-      <Text style={[styles.rowLabel, { color: palette.textMuted }]}>{label}</Text>
-      <View style={styles.rowRight}>{children}</View>
+      {content}
     </View>
   );
 }
@@ -338,34 +169,14 @@ function Row({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  signOut: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    marginRight: -spacing.sm,
-  },
-  signOutText: {
-    fontSize: 14,
-    fontWeight: '700',
   },
   scroll: {
     flex: 1,
   },
   content: {
     gap: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   centered: {
     flex: 1,
@@ -376,73 +187,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   stateTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '700',
     textAlign: 'center',
-  },
-  statusCard: {
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  readyPill: {
-    borderRadius: 999,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  readyPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  signedInAs: {
-    fontSize: 12,
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  rowLabel: {
-    fontSize: 13,
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexShrink: 1,
-  },
-  rowValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  changelink: {
-    paddingVertical: spacing.xxs,
-  },
-  changeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  saveError: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  note: {
-    fontSize: 12,
-    lineHeight: 17,
-    flexShrink: 1,
-    textAlign: 'right',
   },
   sectionHead: {
     flexDirection: 'row',
@@ -451,11 +198,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: fs(17),
     fontWeight: '800',
   },
   sectionCount: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   emptyCard: {
     borderRadius: radius.lg,
@@ -465,11 +212,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: fs(14),
   },
   emptyHint: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: fs(13),
+    lineHeight: lh(18),
     textAlign: 'center',
   },
   requestCard: {
@@ -484,15 +231,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardCode: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '800',
   },
   cardTotal: {
-    fontSize: 16,
+    fontSize: fs(16),
     fontWeight: '800',
   },
   cardCustomer: {
-    fontSize: 13,
+    fontSize: fs(13),
   },
   badges: {
     flexDirection: 'row',
@@ -502,10 +249,10 @@ const styles = StyleSheet.create({
   badge: {
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
   },
   itemLines: {
@@ -521,38 +268,15 @@ const styles = StyleSheet.create({
   },
   itemName: {
     flex: 1,
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '600',
   },
   itemQty: {
-    fontSize: 12,
+    fontSize: fs(12),
     textAlign: 'right',
   },
   moreItems: {
-    fontSize: 12,
+    fontSize: fs(12),
     fontWeight: '700',
-  },
-  ordersRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  orderNavCard: {
-    flex: 1,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    gap: spacing.xxs,
-  },
-  orderNavTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  orderNavCount: {
-    fontSize: 12,
-  },
-  externalNote: {
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
   },
 });

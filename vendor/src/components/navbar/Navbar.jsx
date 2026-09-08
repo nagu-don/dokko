@@ -6,13 +6,15 @@ const LINKS = [
   { to: '/new', labelKey: 'navNew' },
   { to: '/accepted', labelKey: 'navAccepted' },
   { to: '/items', labelKey: 'navItems' },
+  { to: '/notices', labelKey: 'navNotices' },
 ];
 
-// thematic accent follows the selected page: green / blue / yellow
+// thematic accent follows the selected page: green / blue / yellow / purple
 const THEME_BY_PATH = {
   '/new': 'theme-green',
   '/accepted': 'theme-blue',
   '/items': 'theme-yellow',
+  '/notices': 'theme-purple',
 };
 
 const Navbar = ({ vendorName, onLogout }) => {

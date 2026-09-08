@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import MapView, { type Region } from 'react-native-maps';
 import { Marker } from 'react-native-maps';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   freshnessText: {
     fontSize: 11,

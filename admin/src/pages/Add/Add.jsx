@@ -20,6 +20,7 @@ const ITEM_SORT_FIELDS = {
   maxPrice: { label: 'Max price', type: 'number', get: (i) => i.maxPrice },
   approved: { label: 'Approved', get: (i) => i.status },
   available:{ label: 'Available', get: (i) => i.available },
+  newItems: { label: 'New Items', get: (i) => i.nameEng },
 };
 
 const ITEM_SORT_OPTIONS = Object.entries(ITEM_SORT_FIELDS)
@@ -302,18 +303,26 @@ const Add = ({ url }) => {
   };
 
   // search + sort across everything, then paginate the combined list
+  const searched = list.filter((item) => matchesQuery(query, itemSearchValues(item)));
+
+  const newItemsOnly = sort.key === 'newItems';
+
   const visible = sortRows(
-    list.filter((item) => matchesQuery(query, itemSearchValues(item))),
-    sort.key,
+    newItemsOnly
+      ? searched.filter((item) => item.nameEng === item.nameNep)
+      : searched,
+    newItemsOnly ? 'nameEng' : sort.key,
     sort.dir,
     ITEM_SORT_FIELDS
   );
 
   // existing first, then new — same order as before, one continuous list
-  const orderedItems = [
-    ...visible.filter((item) => item.nameEng !== item.nameNep),
-    ...visible.filter((item) => item.nameEng === item.nameNep),
-  ];
+  const orderedItems = newItemsOnly
+    ? visible
+    : [
+        ...visible.filter((item) => item.nameEng !== item.nameNep),
+        ...visible.filter((item) => item.nameEng === item.nameNep),
+      ];
 
   const totalPages = Math.max(1, Math.ceil(orderedItems.length / ITEMS_PER_PAGE));
 

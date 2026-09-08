@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
+import { VendorNavBar } from '@/components/vendor';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import {
   useCancelVendorPayment,
@@ -16,7 +18,7 @@ import {
 import { useVendorAcceptedOrder } from '@/hooks/useVendorRequests';
 import { t, money, num, tMsg } from '@/i18n';
 import { getServerMessage, isApiError } from '@/services/api';
-import { radius, spacing } from '@/theme';
+import { fs, lh, radius, spacing } from '@/theme';
 import type { PaymentProvider, PaymentStatus, VendorPresentedOrder } from '@/types';
 import { formatOrderDate } from '@/utils/date';
 import { paymentStatusLabel, providerLabel } from '@/utils/paymentModel';
@@ -309,31 +311,24 @@ export default function VendorCollectPaymentScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top }]}>
-      <View style={styles.topBar}>
-        <Pressable
-          onPress={handleBack}
-          accessibilityRole="button"
-          accessibilityLabel={t(lang, 'backAria')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.backGlyph, { color: palette.text }]}>‹</Text>
-        </Pressable>
-        <Text style={[styles.topTitle, { color: palette.text }]} numberOfLines={1}>
-          {t(lang, 'vendorPaymentTitle')}
-        </Text>
-        <Pressable
-          onPress={() => refetch()}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={({ pressed }) => [styles.back, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Text style={[styles.refreshText, { color: palette.primary }]}>
-            {t(lang, 'vendorRefresh')}
-          </Text>
-        </Pressable>
-      </View>
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <VendorNavBar
+        title={t(lang, 'vendorPaymentTitle')}
+        onBack={handleBack}
+        hideMenu
+        right={
+          <Pressable
+            onPress={() => refetch()}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => [styles.refresh, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.refreshText, { color: palette.primary }]}>
+              {t(lang, 'vendorRefresh')}
+            </Text>
+          </Pressable>
+        }
+      />
       {content}
     </View>
   );
@@ -493,37 +488,18 @@ function PaymentAttemptCard({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: spacing.sm,
-  },
-  back: {
+  refresh: {
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  backGlyph: {
-    fontSize: 34,
-    fontWeight: '400',
-    lineHeight: 36,
   },
   refreshText: {
-    fontSize: 13,
+    fontSize: fs(13),
     fontWeight: '700',
-  },
-  topTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
   },
   scroll: { flex: 1 },
-  content: { gap: spacing.md },
+  content: { gap: spacing.md, paddingHorizontal: spacing.lg },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -532,8 +508,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     paddingHorizontal: spacing.lg,
   },
-  stateTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
-  stateHint: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  stateTitle: { fontSize: fs(17), fontWeight: '700', textAlign: 'center' },
+  stateHint: { fontSize: fs(14), lineHeight: lh(20), textAlign: 'center' },
   card: {
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -541,8 +517,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: 'center',
   },
-  cardTitle: { fontSize: 16, fontWeight: '800' },
-  bigAmount: { fontSize: 30, fontWeight: '800' },
+  cardTitle: { fontSize: fs(16), fontWeight: '800' },
+  bigAmount: { fontSize: fs(30), fontWeight: '800' },
   codeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -550,14 +526,14 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     gap: spacing.sm,
   },
-  code: { fontSize: 18, fontWeight: '800' },
+  code: { fontSize: fs(18), fontWeight: '800' },
   pill: {
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
-  pillText: { fontSize: 12, fontWeight: '700' },
+  pillText: { fontSize: fs(12), fontWeight: '700' },
   actions: { gap: spacing.sm },
   attemptRow: {
     flexDirection: 'row',
@@ -566,9 +542,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     gap: spacing.md,
   },
-  attemptLabel: { fontSize: 13 },
-  attemptValue: { fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  statusValue: { fontSize: 13, fontWeight: '700' },
+  attemptLabel: { fontSize: fs(13) },
+  attemptValue: { fontSize: fs(13), fontWeight: '700', flexShrink: 1, textAlign: 'right' },
+  statusValue: { fontSize: fs(13), fontWeight: '700' },
   qrWrap: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
@@ -576,11 +552,11 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   qr: { width: 240, height: 240 },
-  inlineErrorText: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  inlineErrorText: { fontSize: fs(13), lineHeight: lh(18), textAlign: 'center' },
   mockLink: {
     alignSelf: 'center',
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
   },
-  mockLinkText: { fontSize: 12, textDecorationLine: 'underline' },
+  mockLinkText: { fontSize: fs(12), textDecorationLine: 'underline' },
 });

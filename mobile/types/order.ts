@@ -76,6 +76,8 @@ export interface OrderReadItem {
   item?: string;
   nameEng: string;
   nameNep?: string;
+  unitEng?: string;
+  unitNep?: string;
   quantity: number;
   priceAtOrder: number;
 }

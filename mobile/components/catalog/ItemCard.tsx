@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { AppText as Text } from '@/components/AppText';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { t, money, num } from '@/i18n';
 import { radius, spacing } from '@/theme';
@@ -116,7 +117,7 @@ const VariantRow = memo(function VariantRow({ variant, defaultActive }: VariantR
       </Pressable>
 
       {active ? (
-        <QuantityStepper variant={variant} name={label} quantityKg={qty} />
+        <QuantityStepper variant={variant} name={label} quantity={qty} />
       ) : null}
 
       <Pressable

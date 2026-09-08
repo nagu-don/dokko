@@ -10,7 +10,8 @@
  *
  * Test coverage:
  *  - isolated fixtures (customer, vendor, location, orders, auth)
- *  - Stage 1 / Stage 2 / Stage 3 acceptance + delivery charge
+ *  - Stage 1 / Stage 2 / Stage 3 acceptance
+ *  - distance-based delivery charge (banded tariff at acceptance)
  *  - exact 0.5 km and 1 km radius boundaries
  *  - NO_VENDOR_AVAILABLE terminal state
  *  - vendor availability changes
@@ -41,8 +42,9 @@ import { findEligibleVendors, nextStage } from "../services/geoVendorMatcher.js"
 import vendorRouter from "../routes/vendorRouter.js";
 import { connectTestDB, disconnectTestDB, makePrefix } from "./helpers/testDb.js";
 import {
-  PRIORITY_CONFIG,
-  PRIORITY_DELIVERY_CHARGES,
+  DELIVERY_MAX_KM,
+  DELIVERY_TARIFF_BANDS,
+  deliveryChargeForKm,
   STAGE_DURATION_MS,
   STAGE_RADIUS_KM,
 } from "../config/priorityConfig.js";
@@ -146,38 +148,38 @@ const cleanupFixtures = async () => {
 
 // ── Stage acceptance tests ───────────────────────────────────────
 const testStageAcceptance = async () => {
-  console.log("\n── Stage Acceptance (delivery charge per stage) ──");
+  console.log("\n── Stage Acceptance (delivery charge by distance) ──");
 
-  // Stage 1 acceptance
+  // same point as the drop-off → 0–300m band (25)
   {
     const v = await createVendor(makeDropoff(85.324, 27.7172), "_s1");
     const o = await createOrder();
-    const a = await assignVendor(o._id, v._id, "SEARCHING_0_5KM");
+    const a = await assignVendor(o._id, v._id, 0);
     assert(a !== null, "Stage 1: acceptance succeeds");
-    assert(a.deliveryCharge === 50, "Stage 1: deliveryCharge = 50");
+    assert(a.deliveryCharge === 25, "0 km: deliveryCharge = 25");
     assert(a.status === "Processing", "Stage 1: order is Processing");
     assert(a.priorityStage === "ASSIGNED", "Stage 1: stage = ASSIGNED");
-    assert(a.total === Math.round((100 + 50 + 15) * 100) / 100, "Stage 1: total correct");
+    assert(a.total === Math.round((100 + 25 + 15) * 100) / 100, "0 km: total correct");
   }
 
-  // Stage 2 acceptance
+  // 0.4 km → 301–500m band (30)
   {
-    const v = await createVendor(makeDropoff(85.324, 27.7172), "_s2");
+    const v = await createVendor(createVendorAt([85.324, 27.7172], 0.4, 0, "_s2"), "_s2");
     const o = await createOrder();
-    const a = await assignVendor(o._id, v._id, "SEARCHING_1KM");
-    assert(a !== null, "Stage 2: acceptance succeeds");
-    assert(a.deliveryCharge === 75, "Stage 2: deliveryCharge = 75");
-    assert(a.total === Math.round((100 + 75 + 15) * 100) / 100, "Stage 2: total correct");
+    const a = await assignVendor(o._id, v._id, 0.4);
+    assert(a !== null, "0.4 km: acceptance succeeds");
+    assert(a.deliveryCharge === 30, "0.4 km: deliveryCharge = 30");
+    assert(a.total === Math.round((100 + 30 + 15) * 100) / 100, "0.4 km: total correct");
   }
 
-  // Stage 3 acceptance
+  // 2.5 km → 2–3km band (100)
   {
-    const v = await createVendor(makeDropoff(85.324, 27.7172), "_s3");
+    const v = await createVendor(createVendorAt([85.324, 27.7172], 2.5, 0, "_s3"), "_s3");
     const o = await createOrder();
-    const a = await assignVendor(o._id, v._id, "SEARCHING_CLOSEST");
-    assert(a !== null, "Stage 3: acceptance succeeds");
-    assert(a.deliveryCharge === 120, "Stage 3: deliveryCharge = 120");
-    assert(a.total === Math.round((100 + 120 + 15) * 100) / 100, "Stage 3: total correct");
+    const a = await assignVendor(o._id, v._id, 2.5);
+    assert(a !== null, "2.5 km: acceptance succeeds");
+    assert(a.deliveryCharge === 100, "2.5 km: deliveryCharge = 100");
+    assert(a.total === Math.round((100 + 100 + 15) * 100) / 100, "2.5 km: total correct");
   }
 };
 
@@ -303,7 +305,7 @@ const testNoVendorAvailable = async () => {
     assert(updated.priorityExpiresAt === null, "priorityExpiresAt is null");
 
     // Acceptance prevented.
-    const assigned = await assignVendor(order._id, backup[0]?._id || order._id, "SEARCHING_CLOSEST");
+    const assigned = await assignVendor(order._id, backup[0]?._id || order._id, 0);
     assert(assigned === null, "Acceptance rejected for NO_VENDOR_AVAILABLE");
 
     const finalState = await orderModel.findById(order._id);
@@ -369,7 +371,7 @@ const testStageExpiration = async () => {
     priorityExpiresAt: new Date(Date.now() + 100), // 0.1s remaining
   });
 
-  const immediate = await assignVendor(o._id, v._id, "SEARCHING_0_5KM");
+  const immediate = await assignVendor(o._id, v._id, 0);
   assert(immediate !== null, "Acceptance succeeds before expiry");
 
   // A separate order just past expiry is not claimable via the controller
@@ -392,16 +394,16 @@ const testIdempotentAcceptance = async () => {
   const v = await createVendor(makeDropoff(), "_dup");
   const o = await createOrder();
 
-  const first = await assignVendor(o._id, v._id, "SEARCHING_0_5KM");
-  assert(first !== null && first.deliveryCharge === 50, "First acceptance sets charge 50");
+  const first = await assignVendor(o._id, v._id, 0);
+  assert(first !== null && first.deliveryCharge === 25, "First acceptance sets charge 25");
 
-  const second = await assignVendor(o._id, v._id, "SEARCHING_0_5KM");
+  const second = await assignVendor(o._id, v._id, 0);
   assert(second === null, "Duplicate acceptance returns null");
 
   const after = await orderModel.findById(o._id);
   assert(String(after.vendor) === String(v._id), "Vendor still correct after retry");
-  assert(after.deliveryCharge === 50, "Charge unchanged after retry");
-  assert(after.total === Math.round((100 + 50 + 15) * 100) / 100, "Total unchanged after retry");
+  assert(after.deliveryCharge === 25, "Charge unchanged after retry");
+  assert(after.total === Math.round((100 + 25 + 15) * 100) / 100, "Total unchanged after retry");
 };
 
 // ── Simultaneous orders ─────────────────────────────────────────
@@ -462,9 +464,9 @@ const testPaymentRace = async () => {
   assert(o.status === "Pending", "New order is Pending");
 
   const v = await createVendor(makeDropoff(), "_pay");
-  const a = await assignVendor(o._id, v._id, "SEARCHING_1KM");
-  assert(a.deliveryCharge === 75, "After assignment deliveryCharge = 75");
-  assert(a.total === Math.round((100 + 75 + 15) * 100) / 100, "Total includes delivery charge");
+  const a = await assignVendor(o._id, v._id, 0);
+  assert(a.deliveryCharge === 25, "After assignment deliveryCharge = 25");
+  assert(a.total === Math.round((100 + 25 + 15) * 100) / 100, "Total includes delivery charge");
 };
 
 // ── Delivery-charge immutability ────────────────────────────────
@@ -473,13 +475,25 @@ const testDeliveryChargeImmutability = async () => {
 
   const v = await createVendor(makeDropoff(), "_imm");
   const o = await createOrder();
-  const a = await assignVendor(o._id, v._id, "SEARCHING_0_5KM");
-  assert(a.deliveryCharge === 50, "Initial charge = 50");
+  const a = await assignVendor(o._id, v._id, 0);
+  assert(a.deliveryCharge === 25, "Initial charge = 25");
 
-  // The server is the only writer; PRIORITY_DELIVERY_CHARGES is the source.
-  assert(PRIORITY_DELIVERY_CHARGES["SEARCHING_0_5KM"] === 50, "Map: stage1 = 50");
-  assert(PRIORITY_DELIVERY_CHARGES["SEARCHING_1KM"] === 75, "Map: stage2 = 75");
-  assert(PRIORITY_DELIVERY_CHARGES["SEARCHING_CLOSEST"] === 120, "Map: stage3 = 120");
+  // The server is the only writer; deliveryChargeForKm is the source.
+  // Exact band table (boundaries inclusive): 0–300m=25, 301–500m=30,
+  // 501m–1km=50, 1–2km=75, 2–3km=100, 3–4km=125, 4–5km=150, >5km=null.
+  assert(deliveryChargeForKm(0) === 25, "Band: same point = 25");
+  assert(deliveryChargeForKm(0.3) === 25, "Band: 300m boundary = 25");
+  assert(deliveryChargeForKm(0.31) === 30, "Band: 301m = 30");
+  assert(deliveryChargeForKm(0.5) === 30, "Band: 500m boundary = 30");
+  assert(deliveryChargeForKm(0.6) === 50, "Band: 501m–1km = 50");
+  assert(deliveryChargeForKm(1) === 50, "Band: 1km boundary = 50");
+  assert(deliveryChargeForKm(1.5) === 75, "Band: 1–2km = 75");
+  assert(deliveryChargeForKm(2.5) === 100, "Band: 2–3km = 100");
+  assert(deliveryChargeForKm(3.5) === 125, "Band: 3–4km = 125");
+  assert(deliveryChargeForKm(4.5) === 150, "Band: 4–5km = 150");
+  assert(deliveryChargeForKm(DELIVERY_MAX_KM) === 150, `Band: ${DELIVERY_MAX_KM}km service cap = 150`);
+  assert(deliveryChargeForKm(5.01) === null, "Band: beyond cap → no service");
+  assert(DELIVERY_TARIFF_BANDS.length > 0, "Band: tariff is configured");
 };
 
 // ── Legacy orders ───────────────────────────────────────────────
@@ -616,24 +630,24 @@ const testLifecycleE2E = async () => {
     const order = await initiatePrioritySearch((await createOrder({ priorityStartedAt: null, priorityExpiresAt: null }))._id);
     assert(order.priorityStage === "SEARCHING_0_5KM", "A: order starts at SEARCHING_0_5KM");
     assert(order.deliveryCharge === null, "A: deliveryCharge = null during search");
-    const acc = await assignVendor(order._id, v1._id, "SEARCHING_0_5KM");
+    const acc = await assignVendor(order._id, v1._id, 0);
     assert(acc.priorityStage === "ASSIGNED", "A: becomes ASSIGNED after accept");
-    assert(acc.deliveryCharge === 50, "A: deliveryCharge = 50");
+    assert(acc.deliveryCharge === 25, "A: same-point accept deliveryCharge = 25");
     assert(String(acc.vendor) === String(v1._id), "A: correct vendor assigned");
   }
 
-  // Scenario B — no Stage-1 accept → Stage-2 accept
+  // Scenario B — no Stage-1 accept → Stage-2 accept (0.7 km → 50)
   {
     const o = await createOrder({ priorityExpiresAt: new Date(Date.now() - 1000) });
     const advanced = await advanceStage(o);
     assert(advanced.priorityStage === "SEARCHING_1KM", `B: advanced to SEARCHING_1KM (got ${advanced.priorityStage})`);
     assert(advanced.deliveryCharge === null, "B: deliveryCharge = null during SEARCHING_1KM");
     const v1 = await createVendor(createVendorAt([85.324, 27.7172], 0.7, 0, "_lifeB"));
-    const acc = await assignVendor(advanced._id, v1._id, "SEARCHING_1KM");
-    assert(acc.deliveryCharge === 75, "B: Stage-2 acceptance deliveryCharge = 75");
+    const acc = await assignVendor(advanced._id, v1._id, 0.7);
+    assert(acc.deliveryCharge === 50, "B: 0.7km acceptance deliveryCharge = 50");
   }
 
-  // Scenario C — no Stage-1/2 accept → SEARCHING_CLOSEST accept
+  // Scenario C — no Stage-1/2 accept → SEARCHING_CLOSEST accept (3.0 km → 100)
   {
     const o = await createOrder({ priorityExpiresAt: new Date(Date.now() - 1000) });
     let s = await advanceStage(o);
@@ -641,8 +655,8 @@ const testLifecycleE2E = async () => {
     assert(s.priorityStage === "SEARCHING_CLOSEST", `C: advanced to SEARCHING_CLOSEST (got ${s.priorityStage})`);
     assert(s.deliveryCharge === null, "C: deliveryCharge = null during SEARCHING_CLOSEST");
     const vF = await createVendor(createVendorAt([85.324, 27.7172], 3.0, 0, "_lifeC"));
-    const acc = await assignVendor(s._id, vF._id, "SEARCHING_CLOSEST");
-    assert(acc.deliveryCharge === 120, "C: Stage-3 acceptance deliveryCharge = 120");
+    const acc = await assignVendor(s._id, vF._id, 3.0);
+    assert(acc.deliveryCharge === 100, "C: 3.0km acceptance deliveryCharge = 100");
   }
 };
 
@@ -723,10 +737,15 @@ const testConcurrency100 = async () => {
   for (let i = 0; i < 100; i++) orders.push(await createOrder());
 
   // every order independently accepts a (correct) vendor
+  const pickDefs = [
+    { v: vNear[0], distanceKm: 0.2 },
+    { v: vMid,     distanceKm: 0.8 },
+    { v: vFar,     distanceKm: 2.5 },
+  ];
   await Promise.all(
     orders.map((o, i) => {
-      const pick = i % 3 === 0 ? vNear[0] : i % 3 === 1 ? vMid : vFar;
-      return assignVendor(o._id, pick._id, pick === vFar ? "SEARCHING_CLOSEST" : pick === vMid ? "SEARCHING_1KM" : "SEARCHING_0_5KM");
+      const pick = pickDefs[i % 3];
+      return assignVendor(o._id, pick.v._id, pick.distanceKm);
     })
   );
 
@@ -738,9 +757,8 @@ const testConcurrency100 = async () => {
     const doc = await orderModel.findById(o._id);
     if (doc.vendor) assigned++;
     if (doc.deliveryCharge === null) chargeLeak++;
-    // each order must carry the charge that matches ITS OWN accept stage
-    const pick = i % 3 === 0 ? "SEARCHING_0_5KM" : i % 3 === 1 ? "SEARCHING_1KM" : "SEARCHING_CLOSEST";
-    const expectedCharge = PRIORITY_DELIVERY_CHARGES[pick];
+    // each order must carry the charge that matches ITS OWN distance
+    const expectedCharge = deliveryChargeForKm(pickDefs[i % 3].distanceKm);
     if (doc.deliveryCharge !== expectedCharge) chargeMismatch++;
   }
   assert(assigned === 100, `all 100 orders assigned (got ${assigned})`);
@@ -832,7 +850,7 @@ const testSchedulerIdempotency = async () => {
 
   // a stage-1 order already (correctly) assigned cannot be re-advanced
   const o2 = await createOrder({ priorityExpiresAt: new Date(Date.now() - 1000) });
-  await assignVendor(o2._id, v._id, "SEARCHING_CLOSEST"); // finalize at 120
+  await assignVendor(o2._id, v._id, 0);
   const post = await orderModel.findById(o2._id);
   assert(post.priorityStage === "ASSIGNED", "assigned order is ASSIGNED");
   const reAdv = await advanceStage(post);
@@ -840,11 +858,11 @@ const testSchedulerIdempotency = async () => {
 
   // two identical assignVendor calls → only first wins, charge not duplicated
   const o3 = await createOrder();
-  const a1 = await assignVendor(o3._id, v._id, "SEARCHING_0_5KM");
-  const a2 = await assignVendor(o3._id, v._id, "SEARCHING_0_5KM");
+  const a1 = await assignVendor(o3._id, v._id, 0);
+  const a2 = await assignVendor(o3._id, v._id, 0);
   const o3final = await orderModel.findById(o3._id);
   assert(a1 !== null && a2 === null, "second assign rejected");
-  assert(o3final.deliveryCharge === 50, "charge finalized exactly once");
+  assert(o3final.deliveryCharge === 25, "charge finalized exactly once");
   assert(String(o3final.vendor) === String(v._id), "single vendor assignment");
 };
 
@@ -852,22 +870,25 @@ const testSchedulerIdempotency = async () => {
 // Task 11 — after accept, no applicable API path may change the
 // finalized charge; retrying acceptance/payment must not recalculate
 // the charge.  The accept endpoint never reads a client-supplied
-// charge (it is computed server-side from the stage), so a second
-// accept attempt leaves the original 50/75/120 intact.
+// charge (it is computed server-side from the distance), so a second
+// accept attempt leaves the original banded charge intact.
 const testDeliveryChargeImmutabilityApi = async () => {
   console.log("\n── Delivery-Charge Immutability (API) ──");
 
   await startApi();
 
   for (const scenario of [
-    { stage: "SEARCHING_0_5KM", charge: 50 },
-    { stage: "SEARCHING_1KM", charge: 75 },
-    { stage: "SEARCHING_CLOSEST", charge: 120 },
+    { distanceKm: 0.1, charge: 25 },
+    { distanceKm: 0.9, charge: 50 },
+    { distanceKm: 3.5, charge: 125 },
   ]) {
-    const v = await createVendor(makeDropoff(), `_immApi${scenario.charge}`);
+    const v = await createVendor(
+      createVendorAt([85.324, 27.7172], scenario.distanceKm, 0, `_immApi${scenario.charge}`),
+      `_immApi${scenario.charge}`
+    );
     const token = vendorToken(v._id);
     const o = await createOrder();
-    await assignVendor(o._id, v._id, scenario.stage);
+    await assignVendor(o._id, v._id, scenario.distanceKm);
 
     // retry accept (as a client might on network retry) → rejected, charge unchanged
     const retry = await apiPatch(`/api/vendors/requests/accept/${o._id}`, token);
@@ -879,8 +900,8 @@ const testDeliveryChargeImmutabilityApi = async () => {
       `${scenario.charge} case: charge unchanged after retry (got ${doc.deliveryCharge})`
     );
     assert(
-      [50, 75, 120].includes(doc.deliveryCharge),
-      `${scenario.charge} case: charge is a canonical value`
+      [25, 30, 50, 75, 100, 125, 150].includes(doc.deliveryCharge),
+      `${scenario.charge} case: charge is a band value`
     );
   }
 
@@ -888,12 +909,12 @@ const testDeliveryChargeImmutabilityApi = async () => {
   // or accept would trigger) must not change the finalized charge.
   const v2 = await createVendor(makeDropoff(), "_immApiRetry");
   const o2 = await createOrder();
-  await assignVendor(o2._id, v2._id, "SEARCHING_1KM");
+  await assignVendor(o2._id, v2._id, 0);
   const before = (await orderModel.findById(o2._id)).deliveryCharge;
-  const retry = await assignVendor(o2._id, v2._id, "SEARCHING_1KM");
+  const retry = await assignVendor(o2._id, v2._id, 0);
   const after = (await orderModel.findById(o2._id)).deliveryCharge;
   assert(retry === null, "payment/accept retry rejected");
-  assert(before === 75 && after === 75, "payment/accept retry does not change charge");
+  assert(before === 25 && after === 25, "payment/accept retry does not change charge");
 
   await stopApi();
 };
@@ -961,7 +982,7 @@ const testDuplicateAcceptanceRetry = async () => {
 
   const doc = await orderModel.findById(o._id);
   assert(String(doc.vendor) === String(v._id), "vendor set once");
-  assert(doc.deliveryCharge === 50, "charge set once (50)");
+  assert(doc.deliveryCharge === 25, "charge set once (25)");
   assert(doc.status === "Processing", "status Processing once");
 
   await stopApi();
@@ -994,6 +1015,27 @@ const testStage3Semantics = async () => {
     String(candidates.vendors[0]._id) !== String(far._id),
     "far vendor is not offered (closest wins)"
   );
+
+  // final stage WITH an eligible closest vendor must NOT carry an expiry —
+  // condition that the 3s-polled new-request feed keeps listing it until the
+  // closest vendor accepts (regression: it used to get a 60s window that the
+  // scheduler never refreshes, so the order vanished from the feed forever).
+  {
+    const o = await createOrder({
+      priorityStage: "SEARCHING_1KM",
+      priorityExpiresAt: new Date(Date.now() - 1000),
+      dropoff: makeDropoff(86.5, 28.4),
+    });
+    const st = await advanceStage(o);
+    assert(
+      st.priorityStage === "SEARCHING_CLOSEST",
+      `final stage reached with a closest vendor (got ${st.priorityStage})`
+    );
+    assert(
+      st.priorityExpiresAt === null,
+      "final stage keeps priorityExpiresAt null (offer stays visible)"
+    );
+  }
 
   // no eligible vendor → NO_VENDOR_AVAILABLE via advanceStage
   const vendorCollection = mongoose.connection.db.collection("vendors");

@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ASYNC_CART_KEY } from '@/constants';
 import { round1 } from '@/utils/format';
+import { isKgUnit, qtySteps } from '@/utils/itemDisplay';
 import type { CartAddInput, CartItem } from '@/types';
 
 /**
@@ -15,11 +16,14 @@ import type { CartAddInput, CartItem } from '@/types';
  * Semantics mirror front-end/src/context/Context.jsx EXACTLY:
  *  - addToCart:         round1(existing + amount); adds the line if absent
  *  - decreaseQuantity:  round1(qty - amount); reaches 0 -> line removed
- *  - setQuantity:       invalid/<=0 removes the line; clamps at 999 kg
+ *  - setQuantity:       invalid/<=0 removes the line; clamps at 999
  *  - removeItem:        full line removal regardless of quantity
  *  - clearCart:         empty the cart (future "after checkout")
- *  - total kg badge:    round1(sum of ALL line quantities), i.e. the web's
- *                       `getCartTotalQuantity()` metric — NOT unique-line count
+ *  - badge:             total kg when every line is kg, else unique-line count
+ *
+ * Amounts default to the ITEM's own unit: 0.1 kg for weight-based items,
+ * 1 for count-based items (dozen, piece, L...). Count-unit quantities are
+ * kept as whole numbers.
  *
  * Hydration: a `hydrated` flag flips only after AsyncStorage has been read
  * (onRehydrateStorage). The badge/UI gates rendering on it so a restored
@@ -34,16 +38,21 @@ export interface CartState {
   /** True once the persisted cart has been read from storage. */
   hydrated: boolean;
 
-  addToCart: (item: CartAddInput, amountKg?: number) => void;
-  increaseQuantity: (itemId: string, amountKg?: number) => void;
-  decreaseQuantity: (itemId: string, amountKg?: number) => void;
+  addToCart: (item: CartAddInput, amount?: number) => void;
+  increaseQuantity: (itemId: string, amount?: number) => void;
+  decreaseQuantity: (itemId: string, amount?: number) => void;
   setQuantity: (itemId: string, value: number | string) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
 }
 
+/** Fine step for the given unit (0.1 kg / 1 unit). */
+function defaultStep(unit: { unitEng?: string; unitNep?: string }): number {
+  return qtySteps(unit).fine;
+}
+
 /**
- * Defensive read: drop malformed/negative lines, clamp to 1dp and 999kg,
+ * Defensive read: drop malformed/negative lines, clamp to 1dp and 999,
  * and normalize field types so corrupted storage can never crash a screen.
  */
 function sanitizeLines(value: unknown): CartItem[] {
@@ -76,17 +85,18 @@ export const useCartStore = create<CartState>()(
       lines: [],
       hydrated: false,
 
-      addToCart(item, amountKg = 0.1) {
-        const qty = round1(Number(amountKg));
+      addToCart(item, amount = defaultStep(item)) {
+        const qty = round1(Number(amount));
         set((state) => {
           const existing = state.lines.find((l) => l.itemId === item.itemId);
           if (existing) {
+            const nextQty = round1(existing.quantityKg + qty);
             return {
               lines: state.lines.map((l) =>
                 l.itemId === item.itemId
                   ? {
                       ...l,
-                      quantityKg: round1(l.quantityKg + qty),
+                      quantityKg: nextQty,
                       // Refresh display fields from the live catalog item.
                       nameEng: item.nameEng || l.nameEng,
                       nameNep: item.nameNep || l.nameNep,
@@ -113,10 +123,11 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      increaseQuantity(itemId, amountKg = 0.1) {
-        const qty = round1(Number(amountKg));
+      increaseQuantity(itemId, amount) {
         set((state) => {
-          if (!state.lines.some((l) => l.itemId === itemId)) return state;
+          const line = state.lines.find((l) => l.itemId === itemId);
+          if (!line) return state;
+          const qty = round1(Number(amount ?? defaultStep(line)));
           return {
             lines: state.lines.map((l) =>
               l.itemId === itemId ? { ...l, quantityKg: round1(l.quantityKg + qty) } : l
@@ -125,11 +136,11 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      decreaseQuantity(itemId, amountKg = 0.1) {
-        const qty = round1(Number(amountKg));
+      decreaseQuantity(itemId, amount) {
         set((state) => {
           const line = state.lines.find((l) => l.itemId === itemId);
           if (!line) return state;
+          const qty = round1(Number(amount ?? defaultStep(line)));
           const next = round1(line.quantityKg - qty);
           if (next <= 0) {
             return { lines: state.lines.filter((l) => l.itemId !== itemId) };
@@ -139,8 +150,10 @@ export const useCartStore = create<CartState>()(
       },
 
       setQuantity(itemId, value) {
-        const num = round1(Number(value));
         set((state) => {
+          const line = state.lines.find((l) => l.itemId === itemId);
+          let num = round1(Number(value));
+          if (line && !isKgUnit(line)) num = Math.round(num); // count units are whole
           // Empty / invalid / zero removes the line, exactly like the web.
           if (!Number.isFinite(num) || num <= 0) {
             return { lines: state.lines.filter((l) => l.itemId !== itemId) };

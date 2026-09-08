@@ -3,8 +3,11 @@ import type {
   ApiEnvelope,
   LatLng,
   UpdateVendorLocationInput,
+  UpdateVendorPayoutInput,
   VendorPresentedOrder,
   VendorProfile,
+  VendorNotice,
+  VendorSummaryItem,
 } from '@/types';
 
 /**
@@ -76,6 +79,37 @@ export async function updateVendorLocation(input: UpdateVendorLocationInput): Pr
     throw new ApiError('Server response was incomplete', { status: 500, kind: 'http' });
   }
   return { lat, lng };
+}
+
+/** Create or update the vendor's payout destination (bank account). */
+export async function updateVendorPayout(
+  input: UpdateVendorPayoutInput
+): Promise<VendorProfile> {
+  const { data } = await api.patch<ApiEnvelope<Record<string, unknown>>>(
+    '/api/vendors/payout',
+    input
+  );
+
+  if (!data || data.success !== true) {
+    throw new ApiError(getServerMessage(data, 'Failed to update payout info'), {
+      payload: data,
+      status: data?.success === false ? 400 : 500,
+      kind: 'http',
+    });
+  }
+
+  const d = data.data;
+  return {
+    id: '',
+    name: '',
+    email: '',
+    phone: '',
+    hasSetLocation: false,
+    payoutMethod: typeof d?.payoutMethod === 'string' ? d.payoutMethod : undefined,
+    payoutAccountHolder: strOrNull(d?.payoutAccountHolder),
+    payoutBankName: strOrNull(d?.payoutBankName),
+    payoutAccountNumber: strOrNull(d?.payoutAccountNumber),
+  };
 }
 
 /**
@@ -182,6 +216,96 @@ export async function getCompletedRequests(): Promise<VendorPresentedOrder[]> {
     .filter((r): r is VendorPresentedOrder => r !== null);
 }
 
+/** GET /api/vendors/summary — aggregated items across this vendor's active orders. */
+export async function getItemsSummary(): Promise<{ items: VendorSummaryItem[]; grandTotal: number }> {
+  const { data } = await api.get<
+    ApiEnvelope<unknown[]> | undefined
+  >('/api/vendors/summary');
+
+  if (!data || data.success !== true || !Array.isArray(data.data)) {
+    throw new ApiError(getServerMessage(data, 'Failed to load items summary'), {
+      payload: data,
+      status: 500,
+      kind: 'http',
+    });
+  }
+
+  const items = data.data
+    .filter((r): r is VendorSummaryItem => !!r && typeof r === 'object' && typeof (r as Record<string, unknown>).nameEng === 'string')
+    .map((r) => ({
+      nameEng: String(r.nameEng),
+      nameNep: typeof r.nameNep === 'string' ? r.nameNep : '',
+      unitEng: typeof r.unitEng === 'string' ? r.unitEng : '',
+      unitNep: typeof r.unitNep === 'string' ? r.unitNep : '',
+      quantity: numOrZero(r.quantity),
+      pricePerKg: numOrZero(r.pricePerKg),
+      lineTotal: numOrZero(r.lineTotal),
+    }));
+
+  const d = data as unknown as Record<string, unknown>;
+  const grandTotal = typeof d.grandTotal === 'number'
+    ? d.grandTotal
+    : items.reduce((sum, r) => sum + r.lineTotal, 0);
+
+  return { items, grandTotal };
+}
+
+/** POST /api/vendors/summary/hide-items — mark items as obtained so they disappear from the summary. */
+export async function hideSummaryItems(itemNames: string[]): Promise<void> {
+  const { data } = await api.post<ApiEnvelope<unknown>>(
+    '/api/vendors/summary/hide-items',
+    { itemNames }
+  );
+
+  if (!data || data.success !== true) {
+    throw new ApiError(getServerMessage(data, 'Failed to hide items'), {
+      payload: data,
+      status: data?.success === false ? 400 : 500,
+      kind: 'http',
+    });
+  }
+}
+
+/**
+ * Broadcast notices posted by admins for all vendors.
+ * GET /api/vendors/notices (authVendor).
+ *
+ * Backend semantics (back-end/controllers/noticeController.js
+ * listVendorNotices): every notice in `data`, sorted by createdAt desc, limit
+ * 100. Each notice carries bilingual titleEn/titleNp/bodyEn/bodyNp — the app
+ * picks the active language with fallback; it never re-translates content.
+ */
+export async function getNotices(): Promise<VendorNotice[]> {
+  const { data } = await api.get<
+    ApiEnvelope<unknown[]> | undefined
+  >('/api/vendors/notices');
+
+  if (!data || data.success !== true || !Array.isArray(data.data)) {
+    throw new ApiError(getServerMessage(data, 'Failed to load notices'), {
+      payload: data,
+      status: 500,
+      kind: 'http',
+    });
+  }
+
+  return data.data
+    .map((raw) => {
+      if (!raw || typeof raw !== 'object') return null;
+      const n = raw as Record<string, unknown>;
+      const id = str(n._id) || str(n.id);
+      if (!id) return null;
+      return {
+        id,
+        titleEn: str(n.titleEn),
+        titleNp: typeof n.titleNp === 'string' ? n.titleNp : '',
+        bodyEn: typeof n.bodyEn === 'string' ? n.bodyEn : '',
+        bodyNp: typeof n.bodyNp === 'string' ? n.bodyNp : '',
+        createdAt: typeof n.createdAt === 'string' ? n.createdAt : '',
+      };
+    })
+    .filter((r): r is VendorNotice => r !== null);
+}
+
 /** Best-effort normalization of a `presentOrder` payload into the UI shape. */
 function normalizeRequest(raw: unknown): VendorPresentedOrder | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -196,6 +320,8 @@ function normalizeRequest(raw: unknown): VendorPresentedOrder | null {
         .map((it) => ({
           nameEng: str(it.nameEng),
           nameNep: typeof it.nameNep === 'string' ? it.nameNep : '',
+          unitEng: typeof it.unitEng === 'string' ? it.unitEng : '',
+          unitNep: typeof it.unitNep === 'string' ? it.unitNep : '',
           quantity: numOrZero(it.quantity),
           priceAtOrder: numOrZero(it.priceAtOrder),
         }))

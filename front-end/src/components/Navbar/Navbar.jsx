@@ -9,7 +9,7 @@ import { buildGroups, searchGroups, SUGGEST_THRESHOLD } from '../../utils/search
 
 const Navbar = () => {
   const {
-    items, searchQuery, setSearchQuery, submitSearch, clearSearch, getCartTotalQuantity,
+    items, searchQuery, setSearchQuery, submitSearch, clearSearch, getCartBadge,
     token, setAuthToken, setShowAuth, t, num, lang,
   } = useContext(Context);
 
@@ -91,7 +91,7 @@ const Navbar = () => {
     inputRef.current?.focus();
   };
 
-  const totalKg = getCartTotalQuantity();
+  const cartBadge = getCartBadge();
 
   const scrollToTop = () => {
     window.scrollTo(0, 0);
@@ -183,7 +183,7 @@ const Navbar = () => {
 
         <Link to="/cart" className='cart-link'>
           <img src={cartIcon} className='cart-icon' alt='Cart' />
-          {totalKg > 0 && <span className='nav-cart-badge'>{num(totalKg.toFixed(1))}</span>}
+          {cartBadge > 0 && <span className='nav-cart-badge'>{num(cartBadge)}</span>}
         </Link>
 
         <button className='log-in-button' onClick={() => token ? setAuthToken("") : setShowAuth(true)}>
