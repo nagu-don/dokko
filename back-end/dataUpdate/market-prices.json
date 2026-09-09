@@ -1,6 +1,6 @@
 [
   {
-    "date": "2026-09-08",
+    "date": "2026-09-09",
     "prices": [
       {
         "commodity": "गोलभेडा ठूलो(नेपाली)",
@@ -21,56 +21,56 @@
         "unit": "के.जी.",
         "minPrice": "रू ४०.००",
         "maxPrice": "रू ५०.००",
-        "avgPrice": "रू ४५.००"
+        "avgPrice": "रू ४४.१७"
       },
       {
         "commodity": "गोलभेडा सानो(टनेल)",
         "unit": "के जी",
-        "minPrice": "रू ५५.००",
+        "minPrice": "रू ५२.००",
         "maxPrice": "रू ७०.००",
-        "avgPrice": "रू ६३.९३"
+        "avgPrice": "रू ६०.७५"
       },
       {
         "commodity": "आलु रातो(लाम्चो)",
         "unit": "के.जी.",
-        "minPrice": "रू ५२.००",
+        "minPrice": "रू ५०.००",
         "maxPrice": "रू ५४.००",
-        "avgPrice": "रू ५३.००"
+        "avgPrice": "रू ५२.३३"
       },
       {
         "commodity": "रातो आलु(गोलो)",
         "unit": "के जी",
         "minPrice": "रू ४८.००",
         "maxPrice": "रू ५३.००",
-        "avgPrice": "रू ५०.३३"
+        "avgPrice": "रू ५०.६७"
       },
       {
         "commodity": "आलु रातो(मुडे)",
         "unit": "केजी",
         "minPrice": "रू ४८.००",
         "maxPrice": "रू ५३.००",
-        "avgPrice": "रू ५१.१७"
+        "avgPrice": "रू ५०.६७"
       },
       {
         "commodity": "आलु रातो(भारतीय)",
         "unit": "के जी",
         "minPrice": "रू ४०.००",
         "maxPrice": "रू ४५.००",
-        "avgPrice": "रू ४२.५०"
+        "avgPrice": "रू ४२.३३"
       },
       {
         "commodity": "आलु सेतो",
         "unit": "के.जी.",
         "minPrice": "रू ३५.००",
         "maxPrice": "रू ४०.००",
-        "avgPrice": "रू ३७.५०"
+        "avgPrice": "रू ३८.००"
       },
       {
         "commodity": "प्याज सुकेको (भारतीय)",
         "unit": "के.जी.",
         "minPrice": "रू ९३.००",
         "maxPrice": "रू ९८.००",
-        "avgPrice": "रू ९५.५०"
+        "avgPrice": "रू ९६.१७"
       },
       {
         "commodity": "गाजर(लोकल)",
@@ -98,7 +98,7 @@
         "unit": "के.जी.",
         "minPrice": "रू ८०.००",
         "maxPrice": "रू १००.००",
-        "avgPrice": "रू ९०.००"
+        "avgPrice": "रू ८९.००"
       },
       {
         "commodity": "मूला रातो",
@@ -117,9 +117,9 @@
       {
         "commodity": "भन्टा लाम्चो",
         "unit": "के.जी.",
-        "minPrice": "रू १५.००",
-        "maxPrice": "रू २५.००",
-        "avgPrice": "रू २०.००"
+        "minPrice": "रू १०.००",
+        "maxPrice": "रू २०.००",
+        "avgPrice": "रू १५.००"
       },
       {
         "commodity": "भन्टा डल्लो",
@@ -131,9 +131,9 @@
       {
         "commodity": "बोडी(तने)",
         "unit": "के.जी.",
-        "minPrice": "रू ६०.००",
+        "minPrice": "रू ७०.००",
         "maxPrice": "रू ८०.००",
-        "avgPrice": "रू ७१.६७"
+        "avgPrice": "रू ७५.००"
       },
       {
         "commodity": "मकै बोडी",
@@ -145,16 +145,16 @@
       {
         "commodity": "घिउ सिमी(लोकल)",
         "unit": "के.जी.",
-        "minPrice": "रू ९०.००",
+        "minPrice": "रू ८०.००",
         "maxPrice": "रू १००.००",
-        "avgPrice": "रू ९५.००"
+        "avgPrice": "रू ८९.००"
       },
       {
         "commodity": "घिउ सिमी(हाइब्रीड)",
         "unit": "केजी",
-        "minPrice": "रू ९०.००",
+        "minPrice": "रू ८०.००",
         "maxPrice": "रू १००.००",
-        "avgPrice": "रू ९५.००"
+        "avgPrice": "रू ८७.५०"
       },
       {
         "commodity": "टाटे सिमी",
@@ -166,37 +166,37 @@
       {
         "commodity": "भटमासकोशा",
         "unit": "के.जी.",
-        "minPrice": "रू १२०.००",
-        "maxPrice": "रू १४०.००",
-        "avgPrice": "रू १३०.००"
+        "minPrice": "रू ८०.००",
+        "maxPrice": "रू १००.००",
+        "avgPrice": "रू ९२.५०"
       },
       {
         "commodity": "तितो करेला",
         "unit": "के.जी.",
         "minPrice": "रू ४०.००",
-        "maxPrice": "रू ५०.००",
-        "avgPrice": "रू ४५.००"
+        "maxPrice": "रू ६०.००",
+        "avgPrice": "रू ४८.३३"
       },
       {
         "commodity": "लौका",
         "unit": "के.जी.",
         "minPrice": "रू ४०.००",
-        "maxPrice": "रू ५०.००",
-        "avgPrice": "रू ४५.००"
+        "maxPrice": "रू ६०.००",
+        "avgPrice": "रू ४८.३३"
       },
       {
         "commodity": "परवर(लोकल)",
         "unit": "के.जी.",
-        "minPrice": "रू ६०.००",
-        "maxPrice": "रू ७०.००",
-        "avgPrice": "रू ६५.००"
+        "minPrice": "रू ७०.००",
+        "maxPrice": "रू ८०.००",
+        "avgPrice": "रू ७५.००"
       },
       {
         "commodity": "परवर(तराई)",
         "unit": "केजी",
-        "minPrice": "रू ६०.००",
-        "maxPrice": "रू ७०.००",
-        "avgPrice": "रू ६५.००"
+        "minPrice": "रू ७०.००",
+        "maxPrice": "रू ८०.००",
+        "avgPrice": "रू ७५.००"
       },
       {
         "commodity": "चिचिण्डो",
@@ -294,21 +294,21 @@
         "unit": "के.जी.",
         "minPrice": "रू २००.००",
         "maxPrice": "रू २५०.००",
-        "avgPrice": "रू २२५.००"
+        "avgPrice": "रू २२३.३३"
       },
       {
         "commodity": "च्याउ(डल्ले)",
         "unit": "के जी",
-        "minPrice": "रू ४००.००",
-        "maxPrice": "रू ४५०.००",
-        "avgPrice": "रू ४२५.००"
+        "minPrice": "रू ४५०.००",
+        "maxPrice": "रू ५००.००",
+        "avgPrice": "रू ४७५.००"
       },
       {
         "commodity": "राजा च्याउ",
         "unit": "के.जी.",
         "minPrice": "रू ३००.००",
-        "maxPrice": "रू ३२०.००",
-        "avgPrice": "रू ३१०.००"
+        "maxPrice": "रू ३३०.००",
+        "avgPrice": "रू ३११.६७"
       },
       {
         "commodity": "सिताके च्याउ",
@@ -335,8 +335,8 @@
         "commodity": "ब्रोकाउली",
         "unit": "के.जी.",
         "minPrice": "रू १२०.००",
-        "maxPrice": "रू १४०.००",
-        "avgPrice": "रू १३०.००"
+        "maxPrice": "रू १६०.००",
+        "avgPrice": "रू १४०.००"
       },
       {
         "commodity": "चुकुन्दर",
@@ -460,9 +460,9 @@
       {
         "commodity": "केरा(नेपाली)",
         "unit": "दर्जन",
-        "minPrice": "रू १८०.००",
-        "maxPrice": "रू २२०.००",
-        "avgPrice": "रू २००.००"
+        "minPrice": "रू १५०.००",
+        "maxPrice": "रू २००.००",
+        "avgPrice": "रू १७५.००"
       },
       {
         "commodity": "केरा(मालभोग)",
@@ -518,14 +518,14 @@
         "unit": "के.जी.",
         "minPrice": "रू ४०.००",
         "maxPrice": "रू ६०.००",
-        "avgPrice": "रू ४६.६७"
+        "avgPrice": "रू ४८.००"
       },
       {
         "commodity": "काक्रो(हाइब्रीड)",
         "unit": "के जी",
-        "minPrice": "रू १०.००",
-        "maxPrice": "रू २०.००",
-        "avgPrice": "रू १५.००"
+        "minPrice": "रू २०.००",
+        "maxPrice": "रू ३०.००",
+        "avgPrice": "रू २२.००"
       },
       {
         "commodity": "काक्रो(लोकलक्रस)",
@@ -637,7 +637,7 @@
         "unit": "के.जी.",
         "minPrice": "रू २००.००",
         "maxPrice": "रू २३०.००",
-        "avgPrice": "रू २११.६७"
+        "avgPrice": "रू २१३.३३"
       },
       {
         "commodity": "खु्र्सानी सुकेको",
@@ -649,65 +649,65 @@
       {
         "commodity": "खुर्सानी हरियो(लाम्चो)",
         "unit": "के जी",
-        "minPrice": "रू ५०.००",
-        "maxPrice": "रू ६०.००",
-        "avgPrice": "रू ५५.००"
+        "minPrice": "रू ६०.००",
+        "maxPrice": "रू ७०.००",
+        "avgPrice": "रू ६५.००"
       },
       {
         "commodity": "खुर्सानी हरियो(बुलेट)",
         "unit": "के जी",
-        "minPrice": "रू ५०.००",
-        "maxPrice": "रू ६०.००",
-        "avgPrice": "रू ५५.००"
+        "minPrice": "रू ६०.००",
+        "maxPrice": "रू ७०.००",
+        "avgPrice": "रू ६५.००"
       },
       {
         "commodity": "खुर्सानी हरियो(माछे)",
         "unit": "के जी",
         "minPrice": "रू ४०.००",
-        "maxPrice": "रू ५०.००",
-        "avgPrice": "रू ४५.००"
+        "maxPrice": "रू ६०.००",
+        "avgPrice": "रू ४६.६७"
       },
       {
         "commodity": "खुर्सानी हरियो(अकबरे)",
         "unit": "के जी",
         "minPrice": "रू १५०.००",
-        "maxPrice": "रू २५०.००",
-        "avgPrice": "रू १८३.३३"
+        "maxPrice": "रू २००.००",
+        "avgPrice": "रू १७५.००"
       },
       {
         "commodity": "भेडे खु्र्सानी",
         "unit": "के.जी.",
         "minPrice": "रू ४०.००",
-        "maxPrice": "रू ५०.००",
-        "avgPrice": "रू ४५.००"
+        "maxPrice": "रू ६०.००",
+        "avgPrice": "रू ४६.६७"
       },
       {
         "commodity": "लसुन हरियो",
         "unit": "के.जी.",
-        "minPrice": "रू १८०.००",
-        "maxPrice": "रू २२०.००",
-        "avgPrice": "रू २००.००"
+        "minPrice": "रू १५०.००",
+        "maxPrice": "रू २००.००",
+        "avgPrice": "रू १७५.००"
       },
       {
         "commodity": "हरियो धनिया",
         "unit": "के.जी.",
-        "minPrice": "रू १००.००",
-        "maxPrice": "रू १५०.००",
-        "avgPrice": "रू १२५.००"
+        "minPrice": "रू ८०.००",
+        "maxPrice": "रू १३०.००",
+        "avgPrice": "रू ९८.३३"
       },
       {
         "commodity": "लसुन सुकेको चाइनिज",
         "unit": "के.जी.",
         "minPrice": "रू २२०.००",
         "maxPrice": "रू २६०.००",
-        "avgPrice": "रू २३८.३३"
+        "avgPrice": "रू २३५.००"
       },
       {
         "commodity": "लसुन सुकेको नेपाली",
         "unit": "के.जी.",
         "minPrice": "रू २००.००",
         "maxPrice": "रू २३०.००",
-        "avgPrice": "रू २१५.००"
+        "avgPrice": "रू २११.६७"
       },
       {
         "commodity": "छ्यापी सुकेको",
@@ -719,9 +719,9 @@
       {
         "commodity": "छ्यापी हरियो",
         "unit": "के.जी.",
-        "minPrice": "रू १८०.००",
+        "minPrice": "रू १५०.००",
         "maxPrice": "रू २००.००",
-        "avgPrice": "रू १९०.००"
+        "avgPrice": "रू १८२.५०"
       },
       {
         "commodity": "माछा सुकेको",

@@ -1,0 +1,152 @@
+Update running
+Payment gateway loaded
+DB connected
+Server is listenin on http://localhost:4000
+DB connected
+[priority-scheduler] started (poll every 15s)
+MongoDB connected.
+--------------------------------
+Checking market price database...
+Checking for prices for 2026-09-09...
+Availability synced: 0 now unavailable, 0 available
+Last processed date: 2026-09-08
+Current market date: 2026-09-09
+Last processed date: 2026-09-08
+Items currently in database: 112
+New market price date detected: 2026-09-09
+Updated: गोलभेडा ठूलो(नेपाली)
+Updated: गोलभेडा ठूलो(भारतीय)
+Updated: गोलभेडा सानो(लोकल)
+<!DOCTYPE html><html
+lang="np"><head><meta
+charset="utf-8"><meta
+name="viewport" content="width=device-width, initial-scale=1"><title>कालीमाटी फलफूल तथा तरकारी बजार विकास समिति : सन् १९९५ देखि नेपाली उपभोक्ता हितमा बजार नियमन गरिराखिएको छ</title><meta
+name="description" content="सन् १९९५ देखि नेपाली उपभोक्ता हितमा बजार नियमन गरिराखिएको छ"><meta
+name="author" content="Nobel Dahal(@coderkoala)"><link
+href="/css/frontend.css?id=eb50b79accd79ece2677f3ce78f10f25" rel="stylesheet"> <script async src="
+Found 107 prices for 2026-09-09
+Updated: गोलभेडा सानो(टनेल)
+Successfully translated 1 date(s).
+Saved to ./dataUpdate/market-prices-translated.json
+Saved prices for 2026-09-09
+Updated: आलु रातो(लाम्चो)
+Updated: रातो आलु(गोलो)
+Updated: आलु रातो(मुडे)
+Updated: आलु रातो(भारतीय)
+Updated: आलु सेतो
+Updated: प्याज सुकेको (भारतीय)
+Updated: गाजर(लोकल)
+Updated: गाजर(तराई)
+Updated: बन्दा(लोकल)
+Updated: काउली स्थानिय
+Updated: मूला रातो
+Updated: सेतो मूला(हाइब्रीड)
+Updated: भन्टा लाम्चो
+Updated: भन्टा डल्लो
+Updated: बोडी(तने)
+Updated: मकै बोडी
+Updated: घिउ सिमी(लोकल)
+Updated: घिउ सिमी(हाइब्रीड)
+Updated: टाटे सिमी
+Updated: भटमासकोशा
+Updated: तितो करेला
+Updated: लौका
+Updated: परवर(लोकल)
+Updated: परवर(तराई)
+Updated: चिचिण्डो
+Updated: घिरौला
+Updated: झिगूनी
+Updated: फर्सी पाकेको
+Updated: हरियो फर्सी(डल्लो)
+Updated: भिण्डी
+Updated: सखरखण्ड
+Updated: पिंडालू
+Updated: स्कूस
+Updated: रायो साग
+Updated: पालूगो साग
+Updated: तोरीको साग
+Updated: प्याज हरियो
+Updated: च्याउ(कन्य)
+Updated: च्याउ(डल्ले)
+Updated: राजा च्याउ
+Updated: सिताके च्याउ
+Updated: कुरीलो
+Updated: न्यूरो
+Updated: ब्रोकाउली
+Updated: चुकुन्दर
+Updated: सजिवन
+Updated: रातो बन्दा
+Updated: जिरीको साग
+Updated: सेलरी
+Updated: पार्सले
+Updated: सौफको साग
+Updated: पुदीना
+Updated: गान्टे मूला
+Updated: इमली
+Updated: तामा
+Updated: तोफु
+Updated: गुन्दुक
+Updated: रुख टमाटर
+Updated: स्याउ(फूजी)
+Updated: स्याउ(जुम्ला)
+Updated: स्याउ(मुस्ताङ्ग)
+Updated: केरा(नेपाली)
+Updated: केरा(मालभोग)
+Updated: कागती
+Updated: अनार
+Updated: तरबुजा(हरियो)
+Updated: मौसम
+Updated: जुनार
+Updated: भुई कटहर
+Updated: काक्रो(लोकल)
+Updated: काक्रो(हाइब्रीड)
+Updated: काक्रो(लोकलक्रस)
+Updated: रुख कटहर
+Updated: नासपाती(लोकल)
+Updated: नासपाती(चाइनिज)
+Updated: मेवा(नेपाली)
+Updated: मेवा(भारतीय)
+Updated: अम्बा
+Updated: लप्सी
+Updated: किवि
+Updated: शरीफा
+Updated: आभोकाडो
+Updated: अमला
+Updated: नरिवल(काँचो)
+Updated: नरिवल(हरियो)
+Updated: ड्रागन फ्रुट(नेपाली)
+Updated: अदुवा
+Updated: खु्र्सानी सुकेको
+Updated: खुर्सानी हरियो(लाम्चो)
+Updated: खुर्सानी हरियो(बुलेट)
+Updated: खुर्सानी हरियो(माछे)
+Updated: खुर्सानी हरियो(अकबरे)
+Updated: भेडे खु्र्सानी
+Updated: लसुन हरियो
+Updated: हरियो धनिया
+Updated: लसुन सुकेको चाइनिज
+Updated: लसुन सुकेको नेपाली
+Updated: छ्यापी सुकेको
+Updated: छ्यापी हरियो
+Updated: माछा सुकेको
+Updated: ताजा माछा(रहु)
+Updated: ताजा माछा(बचुवा)
+Updated: ताजा माछा(छडी)
+--------------------------------
+Updated: 107
+Created: 0
+--------------------------------
+Saved last processed date: 2026-09-09
+Database update completed successfully.
+Processed date: 2026-09-09
+--------------------------------
+--------------------------------
+Checking market price database...
+Already saved prices for 2026-09-09
+Availability synced: 0 now unavailable, 0 available
+Last processed date: 2026-09-09
+Current market date: 2026-09-09
+Last processed date: 2026-09-09
+Date has not changed.
+No database update required.
+--------------------------------
