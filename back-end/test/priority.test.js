@@ -1259,6 +1259,82 @@ const testPresentOrderExposesExpiry = async () => {
   await stopApi();
 };
 
+// ── order hot-query index usage (explain) ────────────────────────
+// DB-001 — the two hottest order queries (vendor new-requests listing
+// and the priority scheduler tick) must be served by an index, not a
+// full collection scan.  The scheduler query deliberately omits
+// `status`, so it needs its own index with `vendor` leading while the
+// vendor query additionally filters `status` (see orderModel.js).
+//
+// Assertions are deliberately structural (winning plan uses IXSCAN, no
+// COLLSCAN, and any chosen index is one of the two priority-system
+// compound indexes) rather than pinning one specific plan, so harmless
+// planner heuristic changes don't break the suite.
+const collectStages = (node, acc = {}) => {
+  if (!node || typeof node !== "object") return acc;
+  if (node.stage) {
+    acc[node.stage] = (acc[node.stage] || 0) + 1;
+    if (node.indexName) acc.indexName = node.indexName;
+  }
+  for (const k of ["inputStage", "innerStage", "outerStage", "inputStages"]) {
+    const v = node[k];
+    if (Array.isArray(v)) v.forEach((s) => collectStages(s, acc));
+    else collectStages(v, acc);
+  }
+  return acc;
+};
+
+const testOrderIndexExplain = async () => {
+  console.log("\n── Order Hot-Query Index Usage (explain) ──");
+
+  const now = new Date();
+
+  // Vendor new-requests query shape (vendorController.js listNewRequests)
+  const vendorQuery = {
+    status: "Pending",
+    vendor: null,
+    priorityStage: { $ne: "NO_VENDOR_AVAILABLE" },
+    $or: [
+      { priorityExpiresAt: null },
+      { priorityExpiresAt: { $gt: now } },
+    ],
+  };
+
+  // Priority scheduler tick query shape (priorityScheduler.js tick)
+  const schedulerQuery = {
+    vendor: null,
+    priorityStage: { $in: ["SEARCHING_0_5KM", "SEARCHING_1KM"] },
+    $or: [
+      { priorityExpiresAt: { $lte: now, $ne: null } },
+      {
+        priorityExpiresAt: null,
+        priorityStartedAt: { $lte: new Date(now.getTime() - 180_000) },
+      },
+    ],
+  };
+
+  // Either priority-system compound index is acceptable — what matters is
+  // that neither hot query degenerates into a collection scan.
+  const priorityIndexNames = new Set([
+    "status_1_vendor_1_priorityStage_1_priorityExpiresAt_1",
+    "vendor_1_priorityStage_1_priorityExpiresAt_1",
+  ]);
+
+  for (const [label, query] of [
+    ["vendor new-requests", vendorQuery],
+    ["priority scheduler tick", schedulerQuery],
+  ]) {
+    const explain = await orderModel.collection.find(query).explain("queryPlanner");
+    const stages = collectStages(explain?.queryPlanner?.winningPlan || {});
+    assert(stages.IXSCAN > 0, `${label}: winning plan uses an index (IXSCAN)`);
+    assert(!stages.COLLSCAN, `${label}: no full collection scan`);
+    assert(
+      stages.indexName === undefined || priorityIndexNames.has(stages.indexName),
+      `${label}: selected index is a priority-system compound index`
+    );
+  }
+};
+
 // ── main ────────────────────────────────────────────────────────
 const main = async () => {
   console.log("Priority System Hardening Tests");
@@ -1312,6 +1388,7 @@ const main = async () => {
     await testMalformedGeoData();
     await testLegacyOrdersScope();
     await testPresentOrderExposesExpiry();
+    await testOrderIndexExplain();
   } finally {
     await stopApi();
     await cleanupFixtures();

@@ -91,6 +91,18 @@ const orderSchema = new mongoose.Schema({
 // orders are filtered by paymentStatus during payment and settlement flows
 orderSchema.index({ paymentStatus: 1 });
 
+// supports the vendor new-requests listing (listNewRequests): filters on
+// status "Pending", vendor: null, priorityStage, priorityExpiresAt (range).
+// Equality fields precede the range field (priorityExpiresAt).
+orderSchema.index({ status: 1, vendor: 1, priorityStage: 1, priorityExpiresAt: 1 });
+
+// supports the priority scheduler tick (priorityScheduler.js), which filters
+// on vendor: null, priorityStage $in [...], priorityExpiresAt (range/null) but
+// intentionally does NOT filter on status (an order may be Cancelled while
+// still in a searching stage). status must be the leading field of the vendor
+// index above, so the scheduler needs its own index with vendor leading.
+orderSchema.index({ vendor: 1, priorityStage: 1, priorityExpiresAt: 1 });
+
 const orderModel = mongoose.models.order || mongoose.model("order", orderSchema);
 
 export default orderModel;

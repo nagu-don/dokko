@@ -518,6 +518,19 @@ assert(settlementIndexes.some(i => i.key.paymentId === 1), "Settlements has paym
 const orderIndexes = await db.collection("orders").listIndexes().toArray();
 const orderIndexNames = orderIndexes.map(i => i.name);
 assert(orderIndexNames.some(n => n.includes("paymentStatus")), "Orders has paymentStatus index");
+assert(
+  orderIndexes.some(i =>
+    i.key.status === 1 && i.key.vendor === 1 &&
+    i.key.priorityStage === 1 && i.key.priorityExpiresAt === 1
+  ),
+  "Orders has status+vendor+priorityStage+priorityExpiresAt index (vendor new-requests)"
+);
+assert(
+  orderIndexes.some(i =>
+    i.key.vendor === 1 && i.key.priorityStage === 1 && i.key.priorityExpiresAt === 1
+  ),
+  "Orders has vendor+priorityStage+priorityExpiresAt index (priority scheduler tick)"
+);
 
 // test uniqueness: duplicate merchantReference should fail
 const uniquePayment1 = new paymentModel({
