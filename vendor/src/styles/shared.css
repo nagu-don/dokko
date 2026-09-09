@@ -279,6 +279,20 @@
   color: var(--accent-green);
 }
 
+/* priority-stage countdown on new-request cards — de-emphasized until
+   the window is nearly gone, then clearly urgent */
+.badge.expiry {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.badge.expiry-urgent {
+  background: rgba(224, 49, 49, 0.12);
+  border: 1px solid #e03131;
+  color: #e03131;
+}
+
 .payment-rows div {
   display: flex;
   justify-content: space-between;

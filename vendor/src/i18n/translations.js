@@ -90,6 +90,7 @@ export const translations = {
     acceptedFlash: '{code} accepted',
     loadFailedNew: 'Could not load requests',
     acceptFailed: 'Failed to accept request',
+    expiresIn: 'expires in {s}s',
 
     // accepted page
     acceptedTitle: 'Accepted',
@@ -283,6 +284,7 @@ export const translations = {
     acceptedFlash: '{code} स्वीकार गरियो',
     loadFailedNew: 'अनुरोधहरू लोड गर्न सकिएन',
     acceptFailed: 'अनुरोध स्वीकार गर्न असफल',
+    expiresIn: '{s} सेकेन्ड बाँकी',
 
     // accepted page
     acceptedTitle: 'स्वीकृत',

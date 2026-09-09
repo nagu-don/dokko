@@ -1202,6 +1202,63 @@ const apiPatch = async (path, token) => {
   return { status: res.status, data: await res.json() };
 };
 
+const apiGet = async (path, token) => {
+  const res = await fetch(`${apiBase}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return { status: res.status, data: await res.json() };
+};
+
+// ── presentOrder exposes priorityExpiresAt ─────────────────────────
+// VUX-002 — the new-requests feed must carry the stage expiry so the
+// vendor apps can render a countdown. Additive change to presentOrder;
+// verify both a live stage (future timestamp) and the final stage (null).
+const testPresentOrderExposesExpiry = async () => {
+  console.log("\n── presentOrder exposes priorityExpiresAt ──");
+
+  await startApi();
+
+  // live stage-1 order with a known future expiry
+  {
+    const expiry = new Date(Date.now() + 45_000);
+    const v = await createVendor(makeDropoff(), "_expiry");
+    const token = vendorToken(v._id);
+    const o = await createOrder({ priorityExpiresAt: expiry });
+
+    const res = await apiGet("/api/vendors/requests/new", token);
+    assert(res.status === 200, "GET /requests/new succeeds");
+    const found = res.data.data.find((x) => String(x.id) === String(o._id));
+    assert(!!found, "stage-1 order appears in the new-requests feed");
+    assert(
+      found && found.priorityExpiresAt === expiry.toISOString(),
+      "priorityExpiresAt matches the order's stored value"
+    );
+  }
+
+  // final-stage order (no expiry) still serializes priorityExpiresAt as null
+  {
+    const remote = [86.61, 28.51];
+    const v = await createVendor(makeDropoff(...remote), "_expiryFx");
+    const token = vendorToken(v._id);
+    const o = await createOrder({
+      priorityStage: "SEARCHING_CLOSEST",
+      priorityStartedAt: new Date(),
+      priorityExpiresAt: null,
+      dropoff: makeDropoff(...remote),
+    });
+
+    const res = await apiGet("/api/vendors/requests/new", token);
+    const found = res.data.data.find((x) => String(x.id) === String(o._id));
+    assert(!!found, "final-stage order appears for the closest vendor");
+    assert(
+      found && found.priorityExpiresAt === null,
+      "final-stage order exposes priorityExpiresAt as null"
+    );
+  }
+
+  await stopApi();
+};
+
 // ── main ────────────────────────────────────────────────────────
 const main = async () => {
   console.log("Priority System Hardening Tests");
@@ -1254,6 +1311,7 @@ const main = async () => {
     await testGeospatialExplain();
     await testMalformedGeoData();
     await testLegacyOrdersScope();
+    await testPresentOrderExposesExpiry();
   } finally {
     await stopApi();
     await cleanupFixtures();

@@ -283,6 +283,7 @@ const presentOrder = (order, extra = {}) => ({
   acceptedAt: order.acceptedAt,
   completedAt: order.completedAt,
   priorityStage: order.priorityStage,
+  priorityExpiresAt: order.priorityExpiresAt,
   createdAt: order.createdAt,
   ...extra,
 });
