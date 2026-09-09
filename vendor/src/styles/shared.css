@@ -109,6 +109,10 @@
 /* green action — new requests */
 .accept-btn {
   padding: 9px 20px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 8px;
   background: #2f9e44;
@@ -123,6 +127,10 @@
 /* blue action — accepted requests */
 .complete-btn {
   padding: 9px 20px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 8px;
   background: #1971c2;
