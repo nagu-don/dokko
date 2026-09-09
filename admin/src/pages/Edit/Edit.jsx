@@ -5,7 +5,7 @@ import './Edit.css';
 import editIconImg from '../../assets/edit-icon.png';
 
 const Edit = () => {
-  const url = "http://localhost:4000";
+  const url = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
   const [list, setList] = useState([]);
 

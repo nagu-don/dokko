@@ -19,7 +19,7 @@ import useAdminAuth from './hooks/useAdminAuth'
 import { AdminProvider } from './context/AdminContext'
 
 function App() {
-  const url="http://localhost:4000"
+  const url=import.meta.env.VITE_API_BASE_URL || "http://localhost:4000"
   const token = useAdminAuth()
   const [showAuth, setShowAuth] = useState(false)
 

@@ -28,7 +28,7 @@ export const qtySteps = (item) =>
 const round1 = (n) => Math.round(n * 10) / 10;
 
 const ContextProvider = (props) => {
-    const url = "http://localhost:4000";
+    const url = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
     const [items, setItems] = useState([]);
 

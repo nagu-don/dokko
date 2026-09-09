@@ -10,7 +10,7 @@ import Accepted from './pages/Accepted/Accepted'
 import ItemsNeeded from './pages/ItemsNeeded/ItemsNeeded'
 import Notices from './pages/Notices/Notices'
 
-const url = 'http://localhost:4000'
+const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'
 
 function App() {
   const { token, vendorName, signIn, signOut } = useVendorAuth()
