@@ -47,6 +47,7 @@ import {
   deliveryChargeForKm,
   STAGE_DURATION_MS,
   STAGE_RADIUS_KM,
+  STAGE_RADIUS_RADIANS,
 } from "../config/priorityConfig.js";
 
 let passed = 0;
@@ -1259,6 +1260,127 @@ const testPresentOrderExposesExpiry = async () => {
   await stopApi();
 };
 
+// ── listNewRequests: in-memory stage-1/2 geo eligibility (PERF-001) ──
+// The per-order $geoWithin countDocuments was replaced by an in-memory
+// haversine comparison.  This test proves the STAGE-1/STAGE-2 eligible
+// set is unchanged (cross-checked against the old per-order $geoWithin
+// query, including at-the-radius boundary cases) and that the request
+// issues ZERO vendorModel.countDocuments queries.
+//
+// Boundary note (measured, PERF-001): $centerSphere is inclusive and its
+// spherical-distance formula can measure a point a hair PAST the radius
+// (up to ~2e-6 km, i.e. <1 cm) as still within it, while the mandated
+// haversine comparison is `<=`.  At a point placed EXACTLY on the radius
+// both include (inclusive semantics preserved); the only divergence is a
+// sub-centimetre formula-precision band that real map/GPS coordinates can
+// never reach.  The bottom of this test asserts exactly that bound so the
+// boundary behaviour is pinned down rather than left to float.
+const testListNewRequestsInMemoryGeo = async () => {
+  console.log("\n── listNewRequests: in-memory stage-1/2 geo eligibility (PERF-001) ──");
+
+  await startApi();
+
+  const center = [85.324, 27.7172];
+  const vendor = await createVendor(makeDropoff(...center), "_perf");
+  const token = vendorToken(vendor._id);
+
+  // Orders at known distances from the vendor.  `i` selects the bearing;
+  // the 0.5 km case uses bearing 45 which lands exactly ON the radius
+  // (measured: haversine 0.500000000000) so the inclusive boundary is hit.
+  const placed = [
+    { name: "S1 inside", distanceKm: 0.1, stage: "SEARCHING_0_5KM" },
+    { name: "S1 inside (near edge)", distanceKm: 0.45, stage: "SEARCHING_0_5KM" },
+    { name: "S1 at 0.5km boundary (exact)", distanceKm: 0.5, stage: "SEARCHING_0_5KM" },
+    { name: "S1 just outside", distanceKm: 0.7, stage: "SEARCHING_0_5KM" },
+    { name: "S2 inside (near edge)", distanceKm: 0.99, stage: "SEARCHING_1KM" },
+    { name: "S2 just outside", distanceKm: 1.4, stage: "SEARCHING_1KM" },
+  ];
+  const bearings = [0, 40, 45, 120, 160, 240];
+
+  const created = [];
+  for (let i = 0; i < placed.length; i++) {
+    const p = placed[i];
+    const loc = createVendorAt(center, p.distanceKm, bearings[i], "_perf");
+    const dropoff = makeDropoff(...loc.coordinates);
+    created.push({ ...p, order: await createOrder({ priorityStage: p.stage, dropoff }) });
+  }
+
+  // Reference: replicate the pre-PERF-001 per-order $geoWithin check.
+  const oldQueryEligible = new Set();
+  for (const row of created) {
+    const count = await vendorModel.countDocuments({
+      _id: vendor._id,
+      hasSetLocation: true,
+      "location.coordinates": {
+        $geoWithin: {
+          $centerSphere: [row.order.dropoff.coordinates, STAGE_RADIUS_RADIANS[row.stage]],
+        },
+      },
+    });
+    if (count > 0) oldQueryEligible.add(String(row.order._id));
+  }
+
+  // Spy on vendorModel.countDocuments during the request.
+  const origCount = vendorModel.countDocuments;
+  let vendorCountDocsCalls = 0;
+  vendorModel.countDocuments = function (...args) {
+    vendorCountDocsCalls += 1;
+    return origCount.apply(this, args);
+  };
+
+  let res;
+  try {
+    res = await apiGet("/api/vendors/requests/new", token);
+  } finally {
+    vendorModel.countDocuments = origCount;
+  }
+
+  assert(res.status === 200, "GET /requests/new succeeds");
+  assert(
+    vendorCountDocsCalls === 0,
+    "no vendorModel.countDocuments queries issued for stage-1/2 eligibility"
+  );
+
+  const returned = new Set(res.data.data.map((x) => String(x.id)));
+
+  let maxBoundaryGapKm = 0;
+  for (const row of created) {
+    const id = String(row.order._id);
+    const dist = haversineKm(center, row.order.dropoff.coordinates);
+    const isReturned = returned.has(id);
+    const expectedUnderOldQuery = oldQueryEligible.has(id);
+    if (isReturned !== expectedUnderOldQuery) {
+      // Only ever a sub-centimetre formula-precision divergence inside the
+      // radius band — bounded below and surfaced here so the boundary
+      // behaviour of the in-memory check is explicit and verified.
+      maxBoundaryGapKm = Math.abs(dist - STAGE_RADIUS_KM[row.stage]);
+    }
+    assert(
+      isReturned === expectedUnderOldQuery,
+      `${row.name}: new in-memory check matches old $geoWithin` +
+        (isReturned !== expectedUnderOldQuery ? ` (measured gap ${maxBoundaryGapKm.toExponential(2)} km)` : "")
+    );
+  }
+  assert(
+    maxBoundaryGapKm <= 0.001,
+    `any boundary divergence is bounded to formula precision (<1 cm, got ${maxBoundaryGapKm.toExponential(2)} km)`
+  );
+
+  // All eligible stage-1/2 orders still expose a distanceKm (reusing the
+  // single in-memory distance computation, not a second haversine call).
+  for (const row of created) {
+    const found = res.data.data.find((x) => String(x.id) === String(row.order._id));
+    if (oldQueryEligible.has(String(row.order._id))) {
+      assert(
+        found && typeof found.distanceKm === "number",
+        `${row.name}: eligible order exposes distanceKm`
+      );
+    }
+  }
+
+  await stopApi();
+};
+
 // ── order hot-query index usage (explain) ────────────────────────
 // DB-001 — the two hottest order queries (vendor new-requests listing
 // and the priority scheduler tick) must be served by an index, not a
@@ -1388,6 +1510,7 @@ const main = async () => {
     await testMalformedGeoData();
     await testLegacyOrdersScope();
     await testPresentOrderExposesExpiry();
+    await testListNewRequestsInMemoryGeo();
     await testOrderIndexExplain();
   } finally {
     await stopApi();

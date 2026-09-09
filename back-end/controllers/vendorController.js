@@ -4,7 +4,7 @@ import buildAuthController from "./authFactory.js";
 import buildGoogleAuthController from "./googleAuthFactory.js";
 import { authAdmin } from "../middleware/authMiddleware.js";
 import { assignVendor } from "../services/priorityService.js";
-import { DELIVERY_MAX_KM, STAGE_RADIUS_KM, STAGE_RADIUS_RADIANS } from "../config/priorityConfig.js";
+import { DELIVERY_MAX_KM, STAGE_RADIUS_KM } from "../config/priorityConfig.js";
 
 const { register, login } = buildAuthController(vendorModel);
 const { googleAuth } = buildGoogleAuthController(vendorModel);
@@ -298,8 +298,8 @@ const presentOrder = (order, extra = {}) => ({
 //   SEARCHING_1KM    → only vendors ≤ 1 km from dropoff
 //   SEARCHING_CLOSEST → the single nearest vendor to the dropoff
 //
-// Stage-1 and stage-2 orders are batch-filtered using $geoWithin
-// to avoid a separate DB query per order.
+// Stage-1 and stage-2 orders are batch-filtered in memory using the
+// haversine distance already computed for display (no per-order DB query).
 // Stage-3 orders each require a $geoNear to find the closest vendor.
 export const listNewRequests = async (req, res) => {
   try {
@@ -337,32 +337,26 @@ export const listNewRequests = async (req, res) => {
     }
 
     const eligibleOrderIds = new Set();
+    const orderDistances = new Map();
 
-    // 3. batch-check stage-1 and stage-2 orders using $geoWithin
-    //    $geoWithin with $centerSphere uses radians — same conversion
-    //    as the geo matcher service.
-    const STAGE_RADIUS = STAGE_RADIUS_RADIANS;
-
+    // 3. check stage-1 and stage-2 orders using in-memory haversine
+    //    (the vendor's own location and hasSetLocation are already in
+    //    scope from req.account — no DB round-trip needed).
     for (const stage of ["SEARCHING_0_5KM", "SEARCHING_1KM"]) {
       const bucket = stageBuckets[stage];
       if (bucket.length === 0 || !myLoc) continue;
 
+      const maxKm = STAGE_RADIUS_KM[stage];
       for (const order of bucket) {
         const coords = order.dropoff?.coordinates;
         if (!coords) continue;
 
-        const count = await vendorModel.countDocuments({
-          _id: vendorId,
-          hasSetLocation: true,
-          "location.coordinates": {
-            $geoWithin: {
-              $centerSphere: [coords, STAGE_RADIUS[stage]],
-            },
-          },
-        });
-
-        if (count > 0) {
-          eligibleOrderIds.add(String(order._id));
+        if (req.account.hasSetLocation) {
+          const dist = haversineKm(myLoc, coords);
+          if (dist <= maxKm) {
+            eligibleOrderIds.add(String(order._id));
+            orderDistances.set(String(order._id), dist);
+          }
         }
       }
     }
@@ -417,7 +411,8 @@ export const listNewRequests = async (req, res) => {
 
       const extra = {};
       if (myLoc && order.dropoff?.coordinates) {
-        const dist = haversineKm(myLoc, order.dropoff.coordinates);
+        const dist =
+          orderDistances.get(String(order._id)) ?? haversineKm(myLoc, order.dropoff.coordinates);
         extra.distanceKm = Math.round(dist * 10) / 10;
       }
 
