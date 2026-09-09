@@ -106,6 +106,7 @@ const Accepted = ({ url, onLogout }) => {
           setPayment((prev) => prev ? { ...prev, statusFinal: 'verified' } : prev);
           flash('ok', t('paymentSuccess'));
           load();
+          if (modal?.order?.id) completeOrder(modal.order.id);
         } else if (['payment_failed', 'payment_expired', 'amount_mismatch', 'cancelled'].includes(status)) {
           stopPolling();
           setPayment((prev) => prev ? { ...prev, statusFinal: 'failed' } : prev);
@@ -123,7 +124,7 @@ const Accepted = ({ url, onLogout }) => {
     }, POLL_INTERVAL);
 
     return stopPolling;
-  }, [payment?.data?.paymentId, payment?.statusFinal, url, stopPolling, t, flash, load]);
+  }, [payment?.data?.paymentId, payment?.statusFinal, url, stopPolling, t, flash, load, completeOrder, modal?.order?.id]);
 
   // compute the breakdown the backend will also compute
   const orderAmount = (order) => {
@@ -190,6 +191,7 @@ const Accepted = ({ url, onLogout }) => {
       setPayment({ loading: false, provider: 'cash', data: { ...data.data, flow: 'cash' } });
       flash('ok', t('paymentSuccess'));
       load();
+      completeOrder(order.id);
     } catch (error) {
       setPayment({ loading: false, provider: null, data: null });
       const msg = error.response?.data?.message;
@@ -202,12 +204,39 @@ const Accepted = ({ url, onLogout }) => {
     }
   };
 
+  const completeOrder = async (orderId) => {
+    try {
+      await axios.patch(
+        `${url}/api/vendors/requests/complete/${orderId}`,
+        {},
+        { headers: getAuthHeaders() }
+      );
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          await axios.patch(
+            `${url}/api/vendors/requests/complete/${orderId}`,
+            {},
+            { headers: getAuthHeaders() }
+          );
+        } catch {
+          flash('ok', t('deliveryMarkedManually'));
+        }
+      } else {
+        flash('ok', t('deliveryMarkedManually'));
+      }
+    }
+  };
+
   const simulateMockPayment = async () => {
     try {
       await axios.post(`${url}/api/vendors/payments/mock/${payment.data.paymentId}/complete`, {}, { headers: getAuthHeaders() });
       stopPolling();
       setPayment((previous) => previous ? { ...previous, statusFinal: 'verified' } : previous);
       load();
+      if (modal?.order?.id) completeOrder(modal.order.id);
     } catch (error) {
       setPaymentError(error.response?.data?.message || t('paymentInitFailed'));
     }

@@ -5,7 +5,11 @@ import LocationPicker from '../../components/map/LocationPicker'
 import { loadPreferredDropoff } from '../../utils/location'
 import './Cart.css'
 
-const isPlaceholderPhone = (phone) => !phone || /^g\d{9}$/.test(phone)
+// A phone is a placeholder when the account flag says so (Google sign-in
+// without a real number yet), when no number is saved at all, or when it uses
+// the legacy `g`+9-digit format used before the numeric placeholder existed.
+const isPlaceholderPhone = (phone, isFlagged) =>
+  isFlagged === true || !phone || /^g\d{9}$/.test(phone)
 
 const Cart = () => {
 
@@ -22,6 +26,7 @@ const Cart = () => {
   const [additionalCharges, setAdditionalCharges] = useState(null)
 
   const [userPhone, setUserPhone] = useState(null)
+  const [userPhoneIsPlaceholder, setUserPhoneIsPlaceholder] = useState(false)
   const [showPhonePopup, setShowPhonePopup] = useState(false)
   const [phoneInput, setPhoneInput] = useState('')
   const [phoneError, setPhoneError] = useState('')
@@ -48,7 +53,10 @@ const Cart = () => {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => {
-        if (res.data.success) setUserPhone(res.data.data?.phone || null)
+        if (res.data.success) {
+          setUserPhone(res.data.data?.phone || null)
+          setUserPhoneIsPlaceholder(res.data.data?.phoneIsPlaceholder === true)
+        }
       })
       .catch(() => {})
   }, [token, url])
@@ -132,7 +140,7 @@ const Cart = () => {
 
   const openLocationPicker = () => {
     if (placing) return
-    if (isPlaceholderPhone(userPhone)) {
+    if (isPlaceholderPhone(userPhone, userPhoneIsPlaceholder)) {
       setPhoneInput('')
       setPhoneError('')
       setShowPhonePopup(true)
@@ -155,6 +163,7 @@ const Cart = () => {
       })
       if (res.data.success) {
         setUserPhone(digits)
+        setUserPhoneIsPlaceholder(false)
         setShowPhonePopup(false)
         setPickingLocation({ preferred: loadPreferredDropoff() })
       } else {

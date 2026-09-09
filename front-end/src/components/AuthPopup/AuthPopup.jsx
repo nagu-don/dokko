@@ -133,7 +133,7 @@ const AuthPopup = () => {
         setError(response.data.message || t('somethingWrongToast'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || t('somethingWrongToast'));
+      setError(err.response?.status === 429 ? t('tooManyAttempts') : err.response?.data?.message || t('somethingWrongToast'));
     } finally {
       setLoading(false);
     }

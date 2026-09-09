@@ -24,6 +24,9 @@ const settlementSchema = new mongoose.Schema({
     additionalChargesAmount: {type: Number, required: true, min: 0},
     companyAmount: {type: Number, required: true, min: 0},
     vendorAmount: {type: Number, required: true, min: 0},
+    // cash-fee clawback applied to this settlement: the total of outstanding
+    // cash-order handling fees deducted from vendorAmount at creation time
+    cashFeesDeducted: {type: Number, default: 0, min: 0},
     currency: {type: String, default: "NPR", immutable: true},
 
     // ── status ─────────────────────────────────────────────────

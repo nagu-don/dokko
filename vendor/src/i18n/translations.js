@@ -15,6 +15,7 @@ export const translations = {
     needAccount: 'Need an account? Register',
     haveAccount: 'Have an account? Log in',
     somethingWrong: 'Something went wrong. Try again.',
+    tooManyAttempts: 'Too many attempts. Please try again later.',
     or: 'or',
 
     // language prompt (after account creation)
@@ -131,6 +132,7 @@ export const translations = {
     downloadQr: 'Download QR Code',
     cashPaymentConfirmed: 'Cash payment recorded successfully',
     cashPaymentNote: 'A cash handling fee will be deducted from your next settlement',
+    deliveryMarkedManually: 'Payment recorded — finishing up',
     paymentExpiresAt: 'Expires at',
     paymentInitFailed: 'Failed to initiate payment',
     paymentSuccess: 'Payment verified successfully',
@@ -206,6 +208,7 @@ export const translations = {
     needAccount: 'खाता छैन? दर्ता गर्नुहोस्',
     haveAccount: 'खाता छ? लगइन गर्नुहोस्',
     somethingWrong: 'केही गडबड भयो। फेरि प्रयास गर्नुहोस्।',
+    tooManyAttempts: 'धेरै प्रयास भयो। पछि फेरि प्रयास गर्नुहोस्।',
     or: 'वा',
 
     // language prompt
@@ -322,6 +325,7 @@ export const translations = {
     downloadQr: 'QR कोड डाउनलोड गर्नुहोस्',
     cashPaymentConfirmed: 'नगद भुक्तानी सफलतापूर्वक रेकर्ड भयो',
     cashPaymentNote: 'नगद ह्यान्डलिङ शुल्क तपाईंको अर्को सेटलमेन्टबाट कट्याइनेछ',
+    deliveryMarkedManually: 'भुक्तानी रेकर्ड भयो — पूरा गर्दैछौं',
     paymentExpiresAt: 'म्याद समाप्ति',
     paymentInitFailed: 'भुक्तानी सुरु गर्न असफल',
     paymentSuccess: 'भुक्तानी सफलतापूर्वक पुष्टि भयो',

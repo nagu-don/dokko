@@ -359,6 +359,12 @@ const SettlementDetail = ({
               <span className='detail-label'>{t('companyShareLabel')}</span>
               <span className='detail-value'>{money(s.companyAmount)}</span>
             </div>
+            {Number(s.cashFeesDeducted) > 0 && (
+              <div className='detail-row'>
+                <span className='detail-label'>{t('cashFeesDeductedLabel')}</span>
+                <span className='detail-value'>-{money(s.cashFeesDeducted)}</span>
+              </div>
+            )}
             <div className='detail-row highlight vendor'>
               <span className='detail-label'>{t('vendorPayableLabel')}</span>
               <span className='detail-value'>{money(s.vendorAmount)}</span>

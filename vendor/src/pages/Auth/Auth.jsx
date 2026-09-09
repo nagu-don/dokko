@@ -127,8 +127,8 @@ const Auth = ({ url, onSignIn }) => {
       } else {
         onSignIn({ token: data.token, name: data.user.name });
       }
-    } catch {
-      setError(t('somethingWrong'));
+    } catch (err) {
+      setError(err?.response?.status === 429 ? t('tooManyAttempts') : t('somethingWrong'));
     } finally {
       setBusy(false);
     }

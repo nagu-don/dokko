@@ -67,7 +67,9 @@ const AuthPopup = ({ url, onClose }) => {
         setError(response.data.message || 'Something went wrong');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      setError(err.response?.status === 429
+        ? 'Too many attempts. Please try again later.'
+        : (err.response?.data?.message || 'Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }

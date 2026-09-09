@@ -102,6 +102,10 @@ paymentSchema.index({orderId: 1, createdAt: -1});
 // fast lookup of payments belonging to a customer
 paymentSchema.index({customerId: 1, createdAt: -1});
 
+// fast lookup of outstanding (undeducted) cash handling fees by vendor —
+// used when a settlement claws back cash-order fees from the vendor payout
+paymentSchema.index({vendorId: 1, provider: 1, status: 1, cashFeeDeducted: 1});
+
 // auto-expire stale pending payments (TTL index — MongoDB deletes the document
 // after expiresAt is reached; only effective when status is still pending)
 paymentSchema.index(

@@ -123,6 +123,7 @@ export const SERVER_MESSAGE_KEYS: Record<string, string> = {
   'Failed to load vendor location': 'trackingLoadFailed',
   'Failed to fetch vendor location': 'trackingLoadFailed',
   'Failed to load notices': 'vendorLoadFailedNotices',
+  'Too many attempts. Please try again later.': 'errTooManyAttempts',
 };
 
 export function tMsg(lang: AppLang, message: string | undefined): string {

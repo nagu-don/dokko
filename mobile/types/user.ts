@@ -4,6 +4,8 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
+  /** true when `phone` is a Google sign-in placeholder, not a real number yet */
+  phoneIsPlaceholder?: boolean;
   role?: string;
   createdAt?: string;
 }

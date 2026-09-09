@@ -26,6 +26,11 @@ export function authAuthErrorMessage(
         // Backend uses 401/403 for bad Google credentials / auth failures.
         return tMsg(lang, attempt.message) || t(lang, 'errInvalidCredentials');
       }
+      if (attempt.status === 429) {
+        // Rate-limited (too many login/registration attempts) — generic, no
+        // account-existence info leaked.
+        return t(lang, 'errTooManyAttempts');
+      }
       if (attempt.status === 500) {
         return t(lang, 'errServer');
       }

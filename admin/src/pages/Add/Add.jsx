@@ -57,7 +57,9 @@ const Add = ({ url }) => {
 
   const fetchList = async () => {
     try {
-      const response = await axios.get(`${url}/api/items/list`);
+      const response = await axios.get(`${url}/api/items/list`, {
+        headers: getAuthHeaders(),
+      });
       if (response.data.success) {
         setList(response.data.data);
       } else {
@@ -193,7 +195,10 @@ const Add = ({ url }) => {
           if (isAuthError(error)) {
               toast.error("Please log in as an admin to edit items");
           } else {
-              toast.error("Error updating item");
+              toast.error(
+                  error.response?.data?.message ||
+                  "Error updating item"
+              );
           }
       }
   };

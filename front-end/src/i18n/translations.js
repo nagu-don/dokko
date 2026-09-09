@@ -84,6 +84,7 @@ export const translations = {
     loginLink: "Log in",
     welcomeBackToast: "Welcome back{name}! Logged in successfully.",
     accountCreatedToast: "Account created successfully. You are now logged in.",
+    tooManyAttempts: "Too many attempts. Please try again later.",
     or: "or",
 
     // cart
@@ -215,6 +216,7 @@ export const translations = {
     loginLink: "लगइन गर्नुहोस्",
     welcomeBackToast: "फेरि स्वागत छ{name}! सफलतापूर्वक लगइन भयो।",
     accountCreatedToast: "खाता सफलतापूर्वक बन्यो। तपाईं अहिले लगइन हुनुभएको छ।",
+    tooManyAttempts: "धेरै प्रयास भयो। पछि फेरि प्रयास गर्नुहोस्।",
     or: "वा",
 
     // cart

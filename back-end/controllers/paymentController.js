@@ -511,8 +511,11 @@ export const recordCashPayment = async (req, res) => {
     // ── 5. calculate authoritative amount ──────────────────────
     const amount = computeAmount(order);
 
-    // ── 6. calculate cash handling fee (5% of order total) ─────
-    const cashHandlingFee = Math.round(amount * 0.05 * 100) / 100;
+    // ── 6. calculate cash handling fee ─────────────────────────
+    // The company recovers the order's additional charges from the vendor's
+    // next non-cash settlement. Uses the same order.additionalCharges source
+    // as computeAmount()/calculateSettlementAmounts() so all paths agree.
+    const cashHandlingFee = Math.round(Number(order.additionalCharges) * 100) / 100;
 
     // ── 7. create cash payment record ──────────────────────────
     const merchantRef = makeMerchantRef(order._id);
@@ -770,6 +773,55 @@ const calculateSettlementAmounts = (order, config) => {
 };
 
 /**
+ * Deduct outstanding cash handling fees from a settlement's available vendor
+ * payout.
+ *
+ * Strategy: whole-record atomic, oldest first (per FIN-001). For each
+ * outstanding cash-order fee record (still awaiting deduction), fully deduct
+ * it when the remaining payout balance fully covers it; records that do not
+ * fully fit are left untouched and carried forward to the next settlement.
+ * Each record is claimed atomically (findOneAndUpdate with a
+ * cashFeeDeducted:false guard) so a record can never be deducted twice, not
+ * even under concurrent settlement creation for the same vendor.
+ *
+ * @param {ObjectId} vendorId the vendor being settled
+ * @param {number}   available the settlement's vendorAmount before clawback
+ * @returns {Promise<{deductedAmount: number, claimedIds: ObjectId[]>}>}
+ */
+const deductOutstandingCashFees = async (vendorId, available) => {
+  const pending = await paymentModel
+    .find({
+      vendorId,
+      provider: "cash",
+      status: "cash_recorded",
+      cashFeeDeducted: false,
+      cashHandlingFee: { $gt: 0 },
+    })
+    .sort({ createdAt: 1 });
+
+  let deductedAmount = 0;
+  const claimedIds = [];
+
+  for (const record of pending) {
+    const fee = Number(record.cashHandlingFee) || 0;
+    if (fee <= 0 || fee > available - deductedAmount) continue; // carry forward untouched
+
+    // Atomic claim: only the winner of this update gets to count the fee.
+    const claimed = await paymentModel.findOneAndUpdate(
+      { _id: record._id, cashFeeDeducted: false },
+      { $set: { cashFeeDeducted: true } },
+      { returnDocument: "after" }
+    );
+    if (claimed) {
+      deductedAmount = Math.round((deductedAmount + fee) * 100) / 100;
+      claimedIds.push(claimed._id);
+    }
+  }
+
+  return { deductedAmount, claimedIds };
+};
+
+/**
  * Create a settlement record for a verified payment.
  *
  * Snapshots the vendor's payout destination at creation time so
@@ -777,6 +829,11 @@ const calculateSettlementAmounts = (order, config) => {
  * settlements.
  *
  * Uses the commission configuration to calculate amounts.
+ * Outstanding cash-order handling fees for the same vendor are clawed back
+ * from vendorAmount here, and the deducted total is recorded on the
+ * settlement (cashFeesDeducted). Claims are rolled back if settlement
+ * creation fails so a fee is only ever marked deducted when a persisted
+ * settlement actually withheld it.
  * Updates the company account ledger.
  *
  * @param {Object} payment   – verified payment document
@@ -791,24 +848,44 @@ const createSettlement = async (payment, order) => {
 
   const amounts = calculateSettlementAmounts(order, config);
 
-  const settlement = await settlementModel.create({
-    orderId: order._id,
-    vendorId: order.vendor,
-    paymentId: payment._id,
-    customerPaymentAmount: amounts.customerPaymentAmount,
-    goodsAmount: amounts.goodsAmount,
-    deliveryAmount: amounts.deliveryAmount,
-    additionalChargesAmount: amounts.additionalChargesAmount,
-    companyAmount: amounts.companyAmount,
-    vendorAmount: amounts.vendorAmount,
-    payoutDestination: {
-      method: vendor?.payoutMethod || null,
-      bankName: vendor?.payoutBankName || null,
-      accountNumber: vendor?.payoutAccountNumber || null,
-      accountHolder: vendor?.payoutAccountHolder || null,
-    },
-    status: "pending",
-  });
+  const { deductedAmount, claimedIds } = await deductOutstandingCashFees(
+    order.vendor,
+    amounts.vendorAmount
+  );
+  const finalVendorAmount = Math.max(0, amounts.vendorAmount - deductedAmount);
+
+  let settlement;
+  try {
+    settlement = await settlementModel.create({
+      orderId: order._id,
+      vendorId: order.vendor,
+      paymentId: payment._id,
+      customerPaymentAmount: amounts.customerPaymentAmount,
+      goodsAmount: amounts.goodsAmount,
+      deliveryAmount: amounts.deliveryAmount,
+      additionalChargesAmount: amounts.additionalChargesAmount,
+      companyAmount: amounts.companyAmount,
+      vendorAmount: finalVendorAmount,
+      cashFeesDeducted: deductedAmount,
+      payoutDestination: {
+        method: vendor?.payoutMethod || null,
+        bankName: vendor?.payoutBankName || null,
+        accountNumber: vendor?.payoutAccountNumber || null,
+        accountHolder: vendor?.payoutAccountHolder || null,
+      },
+      status: "pending",
+    });
+  } catch (error) {
+    // Settlement not persisted — restore the claimed records so the fees
+    // stay available for a later settlement. No money was mis-recorded.
+    if (claimedIds.length > 0) {
+      await paymentModel.updateMany(
+        { _id: { $in: claimedIds }, cashFeeDeducted: true },
+        { $set: { cashFeeDeducted: false } }
+      );
+    }
+    throw error;
+  }
 
   // Update company account ledger
   let account = await companyAccountModel.findOne();
@@ -993,18 +1070,6 @@ const verifyAndCompletePayment = async ({
   payment.failureReason = null;
   payment.activeAttempt = null;
   await payment.save();
-
-  // ── 9b. Mark pending cash fees as deducted ──────────────────
-  // When a QR payment is verified, mark any pending cash handling fees
-  // for this vendor as deducted (they'll be subtracted from settlement)
-  await paymentModel.updateMany(
-    {
-      vendorId: payment.vendorId,
-      provider: "cash",
-      cashFeeDeducted: false,
-    },
-    { $set: { cashFeeDeducted: true } }
-  );
 
   // ── 10. Update order paymentStatus ────────────────────────
   order.paymentStatus = "paid";

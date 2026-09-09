@@ -56,6 +56,7 @@ export const en = {
   errTimeout: 'The request timed out. Please try again.',
   errServer: 'Something went wrong on our side. Please try again later.',
   errUnexpected: 'Something went wrong. Please try again.',
+  errTooManyAttempts: 'Too many attempts. Please try again later.',
   errAuthExpired: 'Your session has expired. Please sign in again.',
   errIncompleteResponse: 'The server response was incomplete. Please try again.',
   errNoSession: 'The server did not return a session. Please try again.',

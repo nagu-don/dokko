@@ -44,7 +44,7 @@ const updatePhone = async (req, res) => {
 
     const user = await userModel.findByIdAndUpdate(
       req.account._id,
-      { phone },
+      { phone, phoneIsPlaceholder: false },
       { new: true }
     ).select("-password");
 

@@ -41,7 +41,8 @@ import type { CreatedOrder, Dropoff, UserProfile } from '@/types';
  *  - The client sends only `{ items: [{itemId, quantity}], dropoff }` and the
  *    backend re-validates items + re-snapshots prices (totals above are
  *    informational; delivery charges are set by the vendor later).
- *  - A Google placeholder phone (`g` + 9 digits) is replaced via
+ *  - A Google placeholder phone (detected via `phoneIsPlaceholder`, with a
+ *    legacy `g`+9-digits fallback) is replaced via
  *    PATCH /api/users/phone before ordering so the vendor has a real number.
  */
 export default function CheckoutScreen() {
@@ -67,7 +68,8 @@ export default function CheckoutScreen() {
   const userProfile: UserProfile | null =
     myProfile.data && '_id' in myProfile.data ? (myProfile.data as UserProfile) : null;
   const savedPhone = userProfile?.phone ?? '';
-  const needsPhone = !savedPhone || /^g\d{9}$/.test(savedPhone);
+  const needsPhone =
+    userProfile?.phoneIsPlaceholder === true || !savedPhone || /^g\d{9}$/.test(savedPhone);
 
   const [phoneInput, setPhoneInput] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -155,7 +157,7 @@ export default function CheckoutScreen() {
     try {
       // Make sure the vendor-facing number is saved before ordering. A failure
       // here is DEFINITE (the order was never attempted) — no uncertain state.
-      if (!savedPhone || /^g\d{9}$/.test(savedPhone) || savedPhone !== digits) {
+      if (userProfile?.phoneIsPlaceholder === true || !savedPhone || /^g\d{9}$/.test(savedPhone) || savedPhone !== digits) {
         try {
           await updatePhoneMutation.mutateAsync(digits);
         } catch (phoneError) {

@@ -23,7 +23,7 @@ const Edit = () => {
 
   const fetchList = async () => {
     try {
-      const response = await axios.get(`${url}/api/items/list`);
+      const response = await axios.get(`${url}/api/items/list-approved`);
 
       console.log(response.data);
 
@@ -140,7 +140,7 @@ const Edit = () => {
       }
     } catch (error) {
       console.error("UPDATE ERROR:", error);
-      toast.error("Error updating item");
+      toast.error(error.response?.data?.message || "Error updating item");
     }
   };
 

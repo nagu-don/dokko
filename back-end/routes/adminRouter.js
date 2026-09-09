@@ -23,11 +23,12 @@ import {
 } from "../controllers/settlementController.js";
 import { createNotice, listNotices, deleteNotice } from "../controllers/noticeController.js";
 import { authAdmin } from "../middleware/authMiddleware.js";
+import { adminLoginLimiter, registerLimiter } from "../middleware/rateLimiter.js";
 
 const adminRouter = express.Router();
 
-adminRouter.post("/register", registerAdmin);
-adminRouter.post("/login", loginAdmin);
+adminRouter.post("/register", registerLimiter, registerAdmin);
+adminRouter.post("/login", adminLoginLimiter, loginAdmin);
 
 // ── Admin management (requires active admin) ─────────────────
 adminRouter.get("/pending", authAdmin, listPendingAdmins);
