@@ -44,3 +44,19 @@ const makeAuthMiddleware = (Model, role) => async (req, res, next) => {
 export const authUser = makeAuthMiddleware(userModel, "user");
 export const authAdmin = makeAuthMiddleware(adminModel, "admin");
 export const authVendor = makeAuthMiddleware(vendorModel, "vendor");
+
+// finance-gated admin actions (settlement approve/pay) — composes on top of
+// authAdmin and additionally requires the finance permission. Re-checks the
+// database on every request, so revoking the permission takes effect
+// immediately even for already-issued tokens.
+export const authFinanceAdmin = async (req, res, next) => {
+  await authAdmin(req, res, () => {
+    if (!req.account || req.account.canManageFinance !== true) {
+      return res.status(403).json({
+        success: false,
+        message: "Finance permission required for this action",
+      });
+    }
+    next();
+  });
+};

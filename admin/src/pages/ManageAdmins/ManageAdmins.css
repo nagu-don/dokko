@@ -148,7 +148,8 @@
 }
 
 .btn-expand,
-.btn-remove {
+.btn-remove,
+.btn-finance {
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
@@ -178,8 +179,30 @@
   color: #fff;
 }
 
+.finance-badge {
+  background: #e6fffb;
+  color: #08979c;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-finance {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+.btn-finance:hover {
+  background: #722ed1;
+  color: #fff;
+}
+
 .btn-expand:disabled,
-.btn-remove:disabled {
+.btn-remove:disabled,
+.btn-finance:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

@@ -44,6 +44,7 @@ const ensurePrimeAdmin = async () => {
       phone: PRIME_ADMIN_PHONE,
       password: hashedPassword,
       status: "active",
+      canManageFinance: true,
     });
 
     console.log(`Prime admin account created: ${primeAdmin.email}`);
@@ -224,6 +225,20 @@ export const connectDB = async () => {
       );
     if (priorityBackfill > 0) {
       console.log(`Backfilled priority search fields into ${priorityBackfill} order(s)`);
+    }
+
+    // one-time backfill — admins created before finance permissions existed:
+    // explicitly grant the finance permission to the prime admin only
+    // (targeted, never a silent mass-grant). Guarantees at least one
+    // finance-capable admin exists so settlement payouts stay possible.
+    const { modifiedCount: financeBackfill } = await mongoose.connection.db
+      .collection("admins")
+      .updateOne(
+        { email: PRIME_ADMIN_EMAIL, canManageFinance: { $exists: false } },
+        { $set: { canManageFinance: true } }
+      );
+    if (financeBackfill > 0) {
+      console.log(`Granted finance permission to prime admin (${PRIME_ADMIN_EMAIL})`);
     }
 
     // indexes are auto-created by Mongoose from model schemas

@@ -6,7 +6,7 @@ import { getAuthHeaders, isAuthError } from '../../utils/api'
 import { useAdminContext } from '../../context/AdminContext'
 
 const ManageAdmins = ({ url }) => {
-  const { t } = useAdminContext()
+  const { t, canManageFinance, currentAdmin } = useAdminContext()
   const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
@@ -87,6 +87,28 @@ const ManageAdmins = ({ url }) => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to remove admin')
+    } finally {
+      setProcessing(null)
+    }
+  }
+
+  const handleToggleFinance = async (admin) => {
+    const nextValue = !admin.canManageFinance
+    setProcessing(admin._id)
+    try {
+      const response = await axios.patch(
+        `${url}/api/admins/finance-permission/${admin._id}`,
+        { canManageFinance: nextValue },
+        { headers: getAuthHeaders() }
+      )
+      if (response.data.success) {
+        toast.success(response.data.message || (nextValue ? 'Finance permission granted' : 'Finance permission revoked'))
+        setAdmins(prev => prev.map(a => a._id === admin._id ? { ...a, canManageFinance: nextValue } : a))
+      } else {
+        toast.error(response.data.message || 'Failed to update finance permission')
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update finance permission')
     } finally {
       setProcessing(null)
     }
@@ -176,6 +198,9 @@ const ManageAdmins = ({ url }) => {
                   <span className={`status-badge ${getStatusClass(admin.status)}`}>
                     {t(admin.status)}
                   </span>
+                  {admin.canManageFinance && (
+                    <span className='finance-badge'>{t('financePermission')}</span>
+                  )}
                   <span className='admin-joined'>
                     {t('joinedAt')}: {formatDate(admin.createdAt)}
                   </span>
@@ -188,6 +213,17 @@ const ManageAdmins = ({ url }) => {
                   >
                     {expandedId === admin._id ? t('hideActivity') : t('showActivity')}
                   </button>
+                  {canManageFinance && admin._id !== currentAdmin?._id && admin.email !== PRIME_ADMIN_EMAIL && (
+                    <button
+                      className='btn-finance'
+                      onClick={() => handleToggleFinance(admin)}
+                      disabled={processing === admin._id}
+                    >
+                      {processing === admin._id
+                        ? t('processing')
+                        : (admin.canManageFinance ? t('revokeFinance') : t('grantFinance'))}
+                    </button>
+                  )}
                   {admin.email !== PRIME_ADMIN_EMAIL && (
                     <button
                       className='btn-remove'

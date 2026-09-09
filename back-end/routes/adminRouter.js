@@ -8,6 +8,8 @@ import {
   listAllAdmins,
   getAdminActivity,
   removeAdmin,
+  getMe,
+  updateFinancePermission,
 } from "../controllers/adminController.js";
 import {
   getCommissionConfig,
@@ -22,13 +24,16 @@ import {
   getCashTransactions,
 } from "../controllers/settlementController.js";
 import { createNotice, listNotices, deleteNotice } from "../controllers/noticeController.js";
-import { authAdmin } from "../middleware/authMiddleware.js";
+import { authAdmin, authFinanceAdmin } from "../middleware/authMiddleware.js";
 import { adminLoginLimiter, registerLimiter } from "../middleware/rateLimiter.js";
 
 const adminRouter = express.Router();
 
 adminRouter.post("/register", registerLimiter, registerAdmin);
 adminRouter.post("/login", adminLoginLimiter, loginAdmin);
+
+// ── Current admin profile (requires active admin) ─────────────
+adminRouter.get("/me", authAdmin, getMe);
 
 // ── Admin management (requires active admin) ─────────────────
 adminRouter.get("/pending", authAdmin, listPendingAdmins);
@@ -38,15 +43,20 @@ adminRouter.get("/all", authAdmin, listAllAdmins);
 adminRouter.get("/activity/:adminId", authAdmin, getAdminActivity);
 adminRouter.delete("/remove/:id", authAdmin, removeAdmin);
 
+// ── Finance permission management (finance-gated) ─────────────
+adminRouter.patch("/finance-permission/:id", authFinanceAdmin, updateFinancePermission);
+
 // ── Commission configuration ────────────────────────────────
 adminRouter.get("/commission-config", authAdmin, getCommissionConfig);
 adminRouter.patch("/commission-config", authAdmin, updateCommissionConfig);
 
 // ── Settlement management ───────────────────────────────────
+// approve/pay move money and are finance-gated; view/cancel remain
+// available to every authenticated admin.
 adminRouter.get("/settlements", authAdmin, listSettlements);
 adminRouter.get("/settlements/:id", authAdmin, getSettlement);
-adminRouter.patch("/settlements/:id/approve", authAdmin, approveSettlement);
-adminRouter.patch("/settlements/:id/pay", authAdmin, markSettlementPaid);
+adminRouter.patch("/settlements/:id/approve", authFinanceAdmin, approveSettlement);
+adminRouter.patch("/settlements/:id/pay", authFinanceAdmin, markSettlementPaid);
 adminRouter.patch("/settlements/:id/cancel", authAdmin, cancelSettlement);
 
 // ── Company account & vendor payables ───────────────────────

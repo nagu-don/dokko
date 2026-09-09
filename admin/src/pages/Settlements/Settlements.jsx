@@ -35,7 +35,7 @@ const maskDestination = (dest) => {
 };
 
 const Settlements = ({ url }) => {
-  const { t, money } = useAdminContext();
+  const { t, money, canManageFinance } = useAdminContext();
 
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -296,6 +296,7 @@ const Settlements = ({ url }) => {
           url={url}
           t={t}
           money={money}
+          canManageFinance={canManageFinance}
           onClose={() => setSelected(null)}
           onApprove={approveSettlement}
           onCancel={cancelSettlement}
@@ -313,12 +314,14 @@ const Settlements = ({ url }) => {
 };
 
 const SettlementDetail = ({
-  settlement: s, url, t, money,
+  settlement: s, url, t, money, canManageFinance,
   onClose, onApprove, onCancel, onOpenPay, onPaid,
   showPayModal, setShowPayModal,
 }) => {
-  const canApprove = s.status === 'pending';
-  const canPay = ['pending', 'approved'].includes(s.status);
+  // finance actions (approve/pay) are hidden — not just disabled — for
+  // admins without finance permission; server-side auth still enforces it
+  const canApprove = s.status === 'pending' && canManageFinance;
+  const canPay = ['pending', 'approved'].includes(s.status) && canManageFinance;
   const canCancel = ['pending', 'approved'].includes(s.status);
 
   return (
@@ -436,7 +439,7 @@ const SettlementDetail = ({
         </div>
       </div>
 
-      {showPayModal && (
+      {showPayModal && canManageFinance && (
         <PayModal
           settlement={s}
           url={url}

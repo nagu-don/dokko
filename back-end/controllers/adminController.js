@@ -315,6 +315,97 @@ const listAllAdmins = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/admins/me
+ *
+ * Returns the currently authenticated admin's profile (without password).
+ * Used by the admin panel to know whether this admin may take
+ * finance-only actions (canManageFinance).
+ */
+const getMe = async (req, res) => {
+  try {
+    const admin = await adminModel.findById(req.account._id, { password: 0 });
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+    res.json({ success: true, data: admin });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load admin profile",
+    });
+  }
+};
+
+/**
+ * PATCH /api/admins/finance-permission/:id
+ *
+ * Grants or revokes `canManageFinance` on another admin. Finance-gated
+ * (authFinanceAdmin) — only admins who already hold the finance permission
+ * may change it. Refuses to revoke the permission from the last remaining
+ * active finance-capable admin, so settlements can never become unpayable.
+ */
+const updateFinancePermission = async (req, res) => {
+  try {
+    const target = await adminModel.findById(req.params.id);
+    if (!target) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    const { canManageFinance } = req.body;
+    if (typeof canManageFinance !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "canManageFinance must be a boolean",
+      });
+    }
+
+    if (!canManageFinance) {
+      const financeAdminsLeft = await adminModel.countDocuments({
+        _id: { $ne: target._id },
+        status: "active",
+        canManageFinance: true,
+      });
+      if (financeAdminsLeft === 0) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "Cannot revoke finance permission from the last finance-capable admin — settlements would become unpayable",
+        });
+      }
+    }
+
+    target.canManageFinance = canManageFinance;
+    await target.save();
+
+    logAdminActivity(
+      req.account._id,
+      "other",
+      `${canManageFinance ? "Granted" : "Revoked"} finance permission ${canManageFinance ? "to" : "from"} ${target.name} (${target.email})`,
+      { targetAdminId: target._id, canManageFinance }
+    );
+
+    res.json({
+      success: true,
+      message: canManageFinance
+        ? `Finance permission granted to ${target.name}`
+        : `Finance permission revoked from ${target.name}`,
+      data: {
+        id: target._id,
+        email: target.email,
+        canManageFinance: target.canManageFinance,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update finance permission",
+    });
+  }
+};
+
 const getAdminActivity = async (req, res) => {
   try {
     const { adminId } = req.params;
@@ -374,4 +465,4 @@ const removeAdmin = async (req, res) => {
   }
 };
 
-export { registerAdmin, loginAdmin, listPendingAdmins, approveAdmin, rejectAdmin, listAllAdmins, getAdminActivity, removeAdmin };
+export { registerAdmin, loginAdmin, listPendingAdmins, approveAdmin, rejectAdmin, listAllAdmins, getAdminActivity, removeAdmin, getMe, updateFinancePermission };

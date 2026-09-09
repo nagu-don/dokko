@@ -37,6 +37,9 @@ export const translations = {
     remove: "Remove",
     active: "Active",
     rejected: "Rejected",
+    financePermission: "Finance",
+    grantFinance: "Grant Finance",
+    revokeFinance: "Revoke Finance",
 
     // activity actions
     actionLogin: "Login",
@@ -217,6 +220,9 @@ export const translations = {
     remove: "हटाउनुहोस्",
     active: "सक्रिय",
     rejected: "अस्वीकृत",
+    financePermission: "वित्त",
+    grantFinance: "वित्त अनुमति दिनुहोस्",
+    revokeFinance: "वित्त अनुमति हटाउनुहोस्",
 
     // activity actions
     actionLogin: "लगइन",

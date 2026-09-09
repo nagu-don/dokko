@@ -10,7 +10,9 @@ const adminSchema = new mongoose.Schema({
     status: {type: String, enum: ADMIN_STATUSES, default: "pending"},
     approvedByAdminId: {type: mongoose.Schema.Types.ObjectId, ref: "admin", default: null},
     approvedAt: {type: Date, default: null},
-    adminNote: {type: String, default: null, trim: true}
+    adminNote: {type: String, default: null, trim: true},
+    // finance permission — gates settlement approve/pay actions
+    canManageFinance: {type: Boolean, default: false}
 });
 
 const adminModel = mongoose.models.admin || mongoose.model("admin", adminSchema);

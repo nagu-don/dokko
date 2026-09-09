@@ -18,6 +18,9 @@
  * 14. Vendor payable aggregation
  * 15. Settlement cancellation
  * 16. Pay already-paid settlement rejection
+ * 17. Finance permission gate — approve/pay require canManageFinance
+ * 18. Finance permission grant/revoke — takes effect immediately
+ * 19. Last finance admin cannot be revoked (lock-out protection)
  */
 
 import "dotenv/config";
@@ -136,17 +139,46 @@ const bcrypt = (await import("bcrypt")).default;
 const salt = await bcrypt.genSalt(10);
 const hashedPassword = await bcrypt.hash("test123456", salt);
 
-// Test admin
+// Test admin (finance-capable)
 const testAdmin = await db.collection("admins").insertOne({
   name: "Test Settlement Admin",
   email: `${testPrefix}-admin@test.com`,
   phone: String(Date.now() + 100).slice(-10),
   password: hashedPassword,
+  status: "active",
+  canManageFinance: true,
   createdAt: new Date(),
   updatedAt: new Date(),
 });
 const adminId = testAdmin.insertedId;
 const adminToken = jwt.sign({ id: adminId }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+// Non-finance admin (for 403 permission-gate tests)
+const noFinanceAdmin = await db.collection("admins").insertOne({
+  name: "Test Non-Finance Admin",
+  email: `${testPrefix}-nofinance@test.com`,
+  phone: String(Date.now() + 200).slice(-10),
+  password: hashedPassword,
+  status: "active",
+  canManageFinance: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+const noFinanceAdminId = noFinanceAdmin.insertedId;
+const noFinanceToken = jwt.sign({ id: noFinanceAdminId }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+// Second finance-capable admin (for grant/revoke + lock-out tests)
+const financeAdmin2 = await db.collection("admins").insertOne({
+  name: "Test Second Finance Admin",
+  email: `${testPrefix}-finance2@test.com`,
+  phone: String(Date.now() + 300).slice(-10),
+  password: hashedPassword,
+  status: "active",
+  canManageFinance: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+const financeAdmin2Id = financeAdmin2.insertedId;
 
 // Test vendor with payout details
 const testVendor = await vendorModel.create({
@@ -677,12 +709,110 @@ const approvePaid = await api("PATCH", `/api/admins/settlements/${sett12._id}/ap
 assert(approvePaid.status === 409, "Approve paid settlement returns 409");
 
 // ══════════════════════════════════════════════════════════════
+// 17. Finance permission gate — approve/pay require canManageFinance
+// ══════════════════════════════════════════════════════════════
+console.log("\n17. Finance permission gate — approve/pay require canManageFinance");
+
+const { order: ord17, paymentId: pay17, reference: ref17 } = await createOrderAndPayment({ subtotal: 400 });
+await completePayment(pay17);
+
+const sett17 = await settlementModel.findOne({ orderId: ord17._id });
+assert(sett17 !== null && sett17.status === "pending", "Fresh settlement is pending");
+
+// /api/admins/me reports finance permission correctly
+const meNoFinance = await api("GET", "/api/admins/me", null, noFinanceToken);
+assert(meNoFinance.status === 200, "GET /me returns 200 for active admin");
+assert(meNoFinance.data.success === true, "GET /me returns success");
+assert(meNoFinance.data.data.canManageFinance === false, "`/me` reports canManageFinance=false for non-finance admin");
+
+const meFinance = await api("GET", "/api/admins/me", null, adminToken);
+assert(meFinance.data.success === true, "GET /me returns success for finance admin");
+assert(meFinance.data.data.canManageFinance === true, "`/me` reports canManageFinance=true for finance admin");
+
+// Server-side enforcement: non-finance admins blocked on approve/pay
+const noFinanceApprove = await api("PATCH", `/api/admins/settlements/${sett17._id}/approve`, { adminNote: "not allowed" }, noFinanceToken);
+assert(noFinanceApprove.status === 403, "Non-finance admin gets 403 on approve");
+assert(noFinanceApprove.data.success === false, "Blocked approve returns success=false");
+
+const noFinancePay = await api("PATCH", `/api/admins/settlements/${sett17._id}/pay`, { payoutReference: "NOPE" }, noFinanceToken);
+assert(noFinancePay.status === 403, "Non-finance admin gets 403 on pay");
+
+const noTokenApprove = await api("PATCH", `/api/admins/settlements/${sett17._id}/approve`, {});
+assert(noTokenApprove.status === 401 || noTokenApprove.status === 403, "No token on approve is rejected");
+
+// Other admin functionality remains available to non-finance admins
+const nonFinanceList = await api("GET", "/api/admins/settlements", null, noFinanceToken);
+assert(nonFinanceList.status === 200, "Non-finance admin can still list settlements");
+const nonFinanceListAdmins = await api("GET", "/api/admins/all", null, noFinanceToken);
+assert(nonFinanceListAdmins.status === 200, "Non-finance admin can still list admins");
+
+// Settlement remains pending after rejected actions
+const sett17AfterBlocked = await settlementModel.findById(sett17._id);
+assert(sett17AfterBlocked.status === "pending", "Settlement still pending after blocked actions");
+
+// ══════════════════════════════════════════════════════════════
+// 18. Finance permission grant/revoke — takes effect immediately
+// ══════════════════════════════════════════════════════════════
+console.log("\n18. Finance permission grant/revoke — takes effect immediately");
+
+// Non-finance admin cannot use the grant endpoint itself
+const cannotGrant = await api("PATCH", `/api/admins/finance-permission/${financeAdmin2Id}`, { canManageFinance: true }, noFinanceToken);
+assert(cannotGrant.status === 403, "Non-finance admin cannot mutate finance permissions");
+
+// Grant finance to the non-finance admin via the finance-gated endpoint
+const grantRes = await api("PATCH", `/api/admins/finance-permission/${noFinanceAdminId}`, { canManageFinance: true }, adminToken);
+assert(grantRes.status === 200, "Finance admin can grant finance permission");
+assert(grantRes.data.success === true, "Grant returns success");
+assert(grantRes.data.data.canManageFinance === true, "Grant response reflects new permission");
+
+// Newly granted admin can now approve
+const grantedApprove = await api("PATCH", `/api/admins/settlements/${sett17._id}/approve`, { adminNote: "approved after grant" }, noFinanceToken);
+assert(grantedApprove.status === 200, "Granted admin can approve");
+
+const sett17Approved = await settlementModel.findById(sett17._id);
+assert(sett17Approved.status === "approved", "Settlement approved by granted admin");
+
+// Revoke — the very next request must be rejected (permission is not cached)
+const revokeRes = await api("PATCH", `/api/admins/finance-permission/${noFinanceAdminId}`, { canManageFinance: false }, adminToken);
+assert(revokeRes.status === 200, "Finance admin can revoke finance permission");
+assert(revokeRes.data.data.canManageFinance === false, "Revoke response reflects permission removed");
+
+const revokedPay = await api("PATCH", `/api/admins/settlements/${sett17._id}/pay`, { payoutReference: "SHOULD-FAIL" }, noFinanceToken);
+assert(revokedPay.status === 403, "Revoked admin is rejected on the next request (403)");
+
+// Original finance admin can still pay
+const originalPay = await api("PATCH", `/api/admins/settlements/${sett17._id}/pay`, { payoutMethod: "bank", payoutReference: "BANK-17" }, adminToken);
+assert(originalPay.status === 200, "Finance admin can still pay");
+
+// Invalid payload rejected
+const badPayload = await api("PATCH", `/api/admins/finance-permission/${noFinanceAdminId}`, { canManageFinance: "yes" }, adminToken);
+assert(badPayload.status === 400, "Non-boolean canManageFinance rejected");
+
+// ══════════════════════════════════════════════════════════════
+// 19. Last finance admin cannot be revoked (settlements stay payable)
+// ══════════════════════════════════════════════════════════════
+console.log("\n19. Last finance admin cannot be revoked");
+
+// financeAdmin2 is a second finance-capable admin; revoking them is allowed
+const revokeSecond = await api("PATCH", `/api/admins/finance-permission/${financeAdmin2Id}`, { canManageFinance: false }, adminToken);
+assert(revokeSecond.status === 200, "Revoking a second finance admin is allowed while another remains");
+
+// Attempting to revoke the last remaining finance admin must be refused
+const revokeLast = await api("PATCH", `/api/admins/finance-permission/${adminId}`, { canManageFinance: false }, adminToken);
+assert(revokeLast.status === 409, "Revoking the last finance admin returns 409");
+assert(revokeLast.data.success === false, "Lock-out revoke returns success=false");
+
+// Finance permission intact afterward
+const meAfterBlocked = await api("GET", "/api/admins/me", null, adminToken);
+assert(meAfterBlocked.data.data.canManageFinance === true, "Finance permission still intact after blocked revoke");
+
+// ══════════════════════════════════════════════════════════════
 // Cleanup
 // ══════════════════════════════════════════════════════════════
 console.log("\nCleaning up test data...");
 await db.collection("vendors").deleteMany({ _id: { $in: [testVendor._id, testVendor2._id] } });
 await db.collection("users").deleteMany({ _id: testCustomer._id });
-await db.collection("admins").deleteMany({ _id: adminId });
+await db.collection("admins").deleteMany({ _id: { $in: [adminId, noFinanceAdminId, financeAdmin2Id] } });
 await db.collection("orders").deleteMany({});
 await db.collection("payments").deleteMany({});
 await db.collection("settlements").deleteMany({});
