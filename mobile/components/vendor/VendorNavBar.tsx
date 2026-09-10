@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '@/components/AppText';
 import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,11 +8,12 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { t } from '@/i18n';
 import { fs, lh, spacing } from '@/theme';
 import type { Palette } from '@/theme';
+import { useAuthStore } from '@/stores/authStore';
 
 /**
  * Vendor portal top navigation bar (two-row layout).
  *
- * Row 1: Brand ("Dokko Vendor") — spacer — settings gear — Log out
+ * Row 1: Brand ("Dokko Vendor") — spacer — notices — settings gear — Log out
  * Row 2: Section links (New Request / Accepted Orders / Items Needed)
  *
  * Mirrors the web vendor portal's navbar (vendor/src/components/navbar):
@@ -20,9 +21,12 @@ import type { Palette } from '@/theme';
  *  - per-section accent color: New Request → green, Accepted → blue,
  *    Items Needed → yellow
  *  - active link is a tinted pill
- *  - always-on actions: settings gear + red Log out button
+ *  - always-on actions: notices (megaphone), settings gear + red Log out
+ *    icon on TOP-LEVEL screens only.
  *
- * Detail screens (hideMenu) collapse row 1 to back + centered title.
+ * The Log out icon is confirmation-gated (Alert) and is NOT rendered on
+ * detail screens (hideMenu) — those collapse row 1 to back + centered title
+ * and stay visually unchanged.
  */
 export type VendorSection = 'dashboard' | 'accepted' | 'items' | 'notices';
 
@@ -46,8 +50,25 @@ export function VendorNavBar({
   const { palette, lang } = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
 
   const navigate = (path: Href) => router.replace(path);
+
+  const handleSignOut = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
+  const confirmSignOut = () => {
+    Alert.alert(t(lang, 'vendorSignOutConfirm'), undefined, [
+      { text: t(lang, 'cancel'), style: 'cancel' },
+      {
+        text: t(lang, 'signOut'),
+        style: 'destructive',
+        onPress: () => void handleSignOut(),
+      },
+    ]);
+  };
 
   const handleBack = () => {
     if (onBack) {
@@ -133,6 +154,17 @@ export function VendorNavBar({
           >
             <Ionicons name="settings" size={22} color={palette.text} />
           </Pressable>
+          {!hideMenu ? (
+            <Pressable
+              onPress={confirmSignOut}
+              accessibilityRole="button"
+              accessibilityLabel={t(lang, 'signOut')}
+              hitSlop={8}
+              style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Ionicons name="log-out-outline" size={22} color={palette.danger} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 

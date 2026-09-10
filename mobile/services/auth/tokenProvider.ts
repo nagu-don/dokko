@@ -7,8 +7,10 @@
  * the app is running. Keeping both in sync is the auth store's job.
  *
  * It also hosts an `onUnauthorized` hook so the axios response interceptor can
- * tell the auth store when the backend rejected a token (401/403), letting the
+ * tell the auth store when the backend rejected a token (401), letting the
  * store clear the stale session instead of leaving auth state inconsistent.
+ * 403 (authenticated but forbidden) does NOT trigger this hook — callers
+ * handle it as a normal business-rule error.
  */
 let token: string | null = null;
 
@@ -27,7 +29,7 @@ export function clearAuthToken(): void {
   token = null;
 }
 
-/** Register a callback fired when a protected request returns 401/403. */
+/** Register a callback fired when a protected request returns 401. */
 export function onUnauthorized(handler: UnauthorizedHandler): () => void {
   unauthorizedHandlers.add(handler);
   return () => unauthorizedHandlers.delete(handler);

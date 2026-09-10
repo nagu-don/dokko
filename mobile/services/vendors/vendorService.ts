@@ -4,9 +4,10 @@ import type {
   LatLng,
   UpdateVendorLocationInput,
   UpdateVendorPayoutInput,
+  VendorNotice,
   VendorPresentedOrder,
   VendorProfile,
-  VendorNotice,
+  VendorRouteResult,
   VendorSummaryItem,
 } from '@/types';
 
@@ -306,6 +307,51 @@ export async function getNotices(): Promise<VendorNotice[]> {
     .filter((r): r is VendorNotice => r !== null);
 }
 
+/**
+ * Driving route between two points for the vendor navigation map.
+ * POST /api/vendors/route (authVendor).
+ *
+ * The backend relays the request to its server-side OSRM instances — the app
+ * NEVER sends coordinates to a third-party host directly. The server picks the
+ * path of least distance among the alternatives it is offered and returns the
+ * route geometry as [lng, lat] pairs plus distance/duration (read-only, not
+ * persisted). The map re-requests the route whenever the vendor has moved far
+ * enough (see VendorRouteMap); it falls back to a straight-line placeholder
+ * only when this throws on the very first draw.
+ */
+export async function getVendorRoute(from: LatLng, to: LatLng): Promise<VendorRouteResult> {
+  const { data } = await api.post<ApiEnvelope<VendorRouteResult> | undefined>(
+    '/api/vendors/route',
+    { from, to }
+  );
+
+  if (!data || data.success !== true || !data.data || typeof data.data !== 'object') {
+    throw new ApiError(getServerMessage(data, 'Failed to load route'), {
+      payload: data,
+      status: data?.success === false ? 502 : 500,
+      kind: 'http',
+    });
+  }
+
+  const d = data.data;
+  const coords = Array.isArray(d.geometry?.coordinates)
+    ? (d.geometry.coordinates as [number, number][])
+    : null;
+  if (
+    typeof d.distance !== 'number' ||
+    typeof d.duration !== 'number' ||
+    !coords ||
+    coords.length < 2
+  ) {
+    throw new ApiError('Server response was incomplete', { status: 500, kind: 'http' });
+  }
+  return {
+    distance: d.distance,
+    duration: d.duration,
+    geometry: { coordinates: coords },
+  };
+}
+
 /** Best-effort normalization of a `presentOrder` payload into the UI shape. */
 function normalizeRequest(raw: unknown): VendorPresentedOrder | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -350,6 +396,7 @@ function normalizeRequest(raw: unknown): VendorPresentedOrder | null {
     acceptedAt: strOrNull(o.acceptedAt),
     completedAt: strOrNull(o.completedAt),
     priorityStage: typeof o.priorityStage === 'string' ? o.priorityStage : '',
+    priorityExpiresAt: strOrNull(o.priorityExpiresAt),
     createdAt: strOrEmpty(o.createdAt),
     distanceKm: typeof o.distanceKm === 'number' && Number.isFinite(o.distanceKm)
       ? o.distanceKm

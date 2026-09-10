@@ -11,6 +11,7 @@ export const en = {
   signIn: 'Sign in',
   register: 'Create account',
   signOut: 'Sign out',
+  vendorSignOutConfirm: 'Are you sure you want to sign out?',
   email: 'Email',
   password: 'Password',
   phone: 'Phone',
@@ -369,6 +370,7 @@ export const en = {
   vendorAvailabilityNote:
     'Handled automatically alongside your location — this app has no online/offline switch yet.',
   vendorDistanceUnit: '{km} km away',
+  vendorRequestExpiresIn: 'expires in {s}s',
   vendorRequestsSection: 'Incoming requests',
   vendorRequestsCount: '{count} available',
   vendorNoRequests: 'No requests available',
@@ -453,6 +455,8 @@ export const en = {
   // vendor live-location reporting (Phase 14C)
   vendorTrackingPreparing: 'Starting live location sharing…',
   vendorTrackingActive: 'Sharing your live location so the customer can track the delivery',
+  vendorTrackingUnavailable:
+    'Live location sharing is off — the customer can\u2019t see your position. Enable location permission for Dokko in your phone settings.',
   vendorNoActiveDelivery: 'You have no active delivery to track right now.',
   vendorTrackTooFrequent: 'Location updates are being sent too quickly.',
   vendorTrackUpdateFailed: 'Could not update your live location. We\u2019ll try again automatically.',

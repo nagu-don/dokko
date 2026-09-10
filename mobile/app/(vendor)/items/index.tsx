@@ -7,7 +7,7 @@ import { VendorNavBar } from '@/components/vendor';
 import { Button } from '@/components/form';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useItemsSummary, useHideItems } from '@/hooks/useVendorRequests';
-import { t } from '@/i18n';
+import { iname, money, num, t } from '@/i18n';
 import { fs, lh, radius, spacing } from '@/theme';
 import { unitOf } from '@/utils/itemDisplay';
 import type { VendorSummaryItem } from '@/types';
@@ -71,9 +71,6 @@ export default function VendorItemsNeededScreen() {
   };
 
   const checkedCount = Object.values(checked).filter(Boolean).length;
-
-  const money = (n: number) => `Rs. ${n.toLocaleString()}`;
-  const num = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   let content: React.ReactNode;
 
@@ -186,16 +183,16 @@ export default function VendorItemsNeededScreen() {
                     />
                   </Pressable>
                   <Text style={[styles.colItem, { color: palette.text }]} numberOfLines={1}>
-                    {lang === 'np' && row.nameNep ? row.nameNep : row.nameEng}
+                    {iname(lang, row)}
                   </Text>
                   <Text style={[styles.colQty, { color: palette.text }]}>
-                    {num(row.quantity)} {unitOf(lang, row)}
+                    {num(lang, row.quantity)} {unitOf(lang, row)}
                   </Text>
                   <Text style={[styles.colPrice, { color: palette.text }]}>
-                    {money(row.pricePerKg)}
+                    {money(lang, row.pricePerKg)}
                   </Text>
                   <Text style={[styles.colTotal, { color: palette.text }]}>
-                    {money(row.lineTotal)}
+                    {money(lang, row.lineTotal)}
                   </Text>
                 </View>
               );
@@ -207,7 +204,7 @@ export default function VendorItemsNeededScreen() {
                 {t(lang, 'vendorItemsGrandTotal')}
               </Text>
               <Text style={[styles.footerAmount, { color: palette.text }]}>
-                {money(grandTotal)}
+                {money(lang, grandTotal)}
               </Text>
             </View>
 

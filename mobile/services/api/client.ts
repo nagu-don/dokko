@@ -30,9 +30,15 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    if (status === 401 || status === 403) {
-      // The backend rejected our token — tell the auth store to drop the
-      // stale session so protected screens redirect to the auth routes.
+    if (status === 401) {
+      // The backend rejected our token (missing / expired / invalid / wrong
+      // role) — tell the auth store to drop the stale session so protected
+      // screens redirect to the auth routes.
+      //
+      // 403 is intentionally NOT handled here: the backend reserves 403 for
+      // authenticated-but-forbidden business-rule outcomes (e.g. accepting
+      // a request outside the eligible radius) that the caller should see
+      // as an inline error, not a forced logout.
       notifyUnauthorized();
     }
     return Promise.reject(toApiError(error));

@@ -10,6 +10,7 @@ export const np = {
   signIn: 'साइन इन',
   register: 'खाता खोल्नुहोस्',
   signOut: 'बाहिर निस्कनुहोस्',
+  vendorSignOutConfirm: 'के तपाईं बाहिर निस्कन निश्चित हुनुहुन्छ?',
   email: 'इमेल',
   password: 'पासवर्ड',
   phone: 'फोन',
@@ -368,6 +369,7 @@ export const np = {
   vendorAvailabilityNote:
     'तपाईंको स्थानसँगै स्वतः व्यवस्थापन हुन्छ — यो एपमा अनलाइन/अफलाइन स्विच अहिले छैन।',
   vendorDistanceUnit: '{km} किमि टाढा',
+  vendorRequestExpiresIn: '{s} सेकेन्ड बाँकी',
   vendorRequestsSection: 'नयाँ अनुरोधहरू',
   vendorRequestsCount: '{count} उपलब्ध',
   vendorNoRequests: 'कुनै अनुरोध उपलब्ध छैन',
@@ -455,6 +457,8 @@ export const np = {
   // vendor live-location reporting (Phase 14C)
   vendorTrackingPreparing: 'लाइभ लोकेसन साझेदारी सुरु गर्दै…',
   vendorTrackingActive: 'ग्राहकलाई डेलिभरी ट्र्याक गर्न सकियोस् भनी तपाईंको लाइभ लोकेसन साझेदारी गरिँदै छ',
+  vendorTrackingUnavailable:
+    'लाइभ लोकेसन साझेदारी बन्द छ — ग्राहकले तपाईंको स्थान देख्न सक्दैनन्। फोनको सेटिङ्समा गएर Dokko को लोकेसन अनुमति सक्रिय गर्नुहोस्।',
   vendorNoActiveDelivery: 'अहिले ट्र्याक गर्न कुनै चालु डेलिभरी छैन।',
   vendorTrackTooFrequent: 'लोकेसन अपडेट धेरै छिटो पठाइँदै छ।',
   vendorTrackUpdateFailed: 'तपाईंको लाइभ लोकेसन अपडेट गर्न सकिएन। स्वतः फेरि प्रयास गरिनेछ।',

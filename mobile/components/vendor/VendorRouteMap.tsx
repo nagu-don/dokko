@@ -18,8 +18,8 @@ import {
   type StyleSpecification,
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
-import axios from 'axios';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getVendorRoute } from '@/services/vendors';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useVendorProfile } from '@/hooks/useVendorRequests';
 import { t, num } from '@/i18n';
@@ -41,16 +41,16 @@ import type { VendorRequestDropoff } from '@/types';
   *    web portal's deviceorientation source — falling back to the GPS course /
   *    movement bearing while the vendor is moving.
 *  - destination = the customer's drop-off point, marked with a GREEN pin
-  *  - the navigation follows the path of least distance: OSRM is asked for
-  *    route alternatives (up to 3) and the one with the shortest total distance
-  *    is chosen, tried against multiple public OSRM instances so a throttled
-  *    host never breaks routing. That optimal route is highlighted in SOLID
-  *    ORANGE on the map (with a white casing for contrast). The route is
-  *    re-requested from the current GPS position whenever the vendor has moved
-  *    far enough (so the route line and the distance/ETA summary stay current
-  *    while delivering). The straight-line placeholder is only used when every
-  *    provider fails on the very first draw — it is never drawn over an
-  *    existing route.
+  *  - the navigation follows the path of least distance: the backend relays
+  *    the route request to its server-side OSRM instances (which try several
+  *    public hosts in fallback order and pick the shortest alternative) — the
+  *    app never sends coordinates to a third-party host directly. That optimal
+  *    route is highlighted in SOLID ORANGE on the map (with a white casing for
+  *    contrast). The route is re-requested from the current GPS position
+  *    whenever the vendor has moved far enough (so the route line and the
+  *    distance/ETA summary stay current while delivering). The straight-line
+  *    placeholder is only used when routing fails on the very first draw — it
+  *    is never drawn over an existing route.
  *  - the camera follows the moving vendor; panning the map pauses following
  *    and a "re-center" button resumes it
  *
@@ -72,11 +72,6 @@ const MAP_STYLE: StyleSpecification = {
   layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm' }],
 };
 
-const OSRM_PROVIDERS = [
-  'https://router.project-osrm.org/route/v1/driving',
-  'https://routing.openstreetmap.de/routed-car/route/v1/driving',
-];
-
 const KATHMANDU = { lat: 27.7172, lng: 85.324 };
 
 const VENDOR_COLOR = '#e8590c';
@@ -90,7 +85,7 @@ const HEADING_MIN_MOVE_M = 4;
 const FOLLOW_MIN_MOVE_M = 12;
 /** Minimum travel (m) from the last route origin before a new route is fetched. */
 const REROUTE_MIN_MOVE_M = 25;
-/** Cooldown (ms) between consecutive OSRM route requests while moving. */
+/** Cooldown (ms) between consecutive route requests while moving. */
 const REROUTE_THROTTLE_MS = 2000;
 
 type StartKind = 'gps' | 'saved' | 'fallback';
@@ -211,42 +206,32 @@ export function VendorRouteMap({
     };
 
     const fetchRoute = async (from: LatLng) => {
-      // Try each public OSRM instance so a single throttled/blocked host never
-      // causes routing to fall through to the straight-line placeholder.
-      for (const base of OSRM_PROVIDERS) {
-        try {
-          const { data } = await axios.get(
-            `${base}/${from.lng},${from.lat};${destination[0]},${destination[1]}?overview=full&geometries=geojson&alternatives=true`,
-            { timeout: 15000 }
-          );
-          const routes = data?.routes as
-            | Array<{ distance: number; duration: number; geometry: { coordinates: [number, number][] } }>
-            | undefined;
-          if (!Array.isArray(routes) || routes.length === 0) {
-            throw new Error('No route');
-          }
-          // Path of least distance — pick the alternative with the shortest
-          // total distance and highlight that on the map.
-          const r = routes.reduce((best, route) =>
-            route.distance < best.distance ? route : best
-          );
-          const coords = r?.geometry?.coordinates;
-          if (!r || !Array.isArray(coords) || coords.length < 2) {
-            throw new Error('No route');
-          }
-          if (cancelled) return;
-          lastRouteOriginRef.current = from;
-          hasRoute = true;
-          setRoute(coords);
-          setSummary({
-            distanceKm: Math.round((r.distance / 1000) * 10) / 10,
-            minutes: Math.max(1, Math.round(r.duration / 60)),
-          });
-          setStatus('ready');
-          return;
-        } catch {
-          // Throttled or failed — try the next provider.
+      // Ask the backend for the route: it relays to its server-side OSRM
+      // instances in fallback order and returns the shortest alternative, so a
+      // single throttled/blocked host can't break routing (and the app never
+      // sends coordinates to a third-party host directly).
+      try {
+        const route = await getVendorRoute(from, {
+          lat: dropoff.lat,
+          lng: dropoff.lng,
+        });
+        const coords = route.geometry?.coordinates;
+        if (!Array.isArray(coords) || coords.length < 2) {
+          throw new Error('No route');
         }
+        if (cancelled) return;
+        lastRouteOriginRef.current = from;
+        hasRoute = true;
+        setRoute(coords);
+        setSummary({
+          distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+          minutes: Math.max(1, Math.round(route.duration / 60)),
+        });
+        setStatus('ready');
+        return;
+      } catch {
+        // Backend routing unavailable (all providers failed / network) — fall
+        // through to the straight-line placeholder below.
       }
 
       if (cancelled) return;

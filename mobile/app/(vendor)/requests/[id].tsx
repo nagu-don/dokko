@@ -3,7 +3,7 @@ import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
-import { VendorNavBar } from '@/components/vendor';
+import { VendorExpiryBadge, VendorNavBar } from '@/components/vendor';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAcceptRequest, useVendorRequest } from '@/hooks/useVendorRequests';
 import { t, tMsg, money, num, iname } from '@/i18n';
@@ -139,9 +139,12 @@ export default function VendorRequestDetailScreen() {
             <Text style={[styles.stageLabel, { color: palette.textMuted }]}>
               {t(lang, 'vendorRequestStage')}
             </Text>
-            <Text style={[styles.stageValue, { color: palette.primary }]}>
-              {vendorPriorityStageLabel(lang, request.priorityStage)}
-            </Text>
+            <View style={styles.stageRow}>
+              <Text style={[styles.stageValue, { color: palette.primary }]}>
+                {vendorPriorityStageLabel(lang, request.priorityStage)}
+              </Text>
+              <VendorExpiryBadge expiresAt={request.priorityExpiresAt} />
+            </View>
           </View>
         </View>
 
@@ -391,6 +394,12 @@ const styles = StyleSheet.create({
   },
   stage: {
     gap: spacing.xxs,
+  },
+  stageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
   stageLabel: {
     fontSize: fs(12),

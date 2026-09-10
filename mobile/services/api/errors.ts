@@ -57,13 +57,15 @@ function extractMessage(status: number | undefined, body: unknown): string {
   }
   if (status) {
     const label =
-      status === 401 || status === 403
+      status === 401
         ? 'Authentication failed'
-        : status === 404
-          ? 'Requested resource was not found'
-          : status === 500
-            ? 'Server error'
-            : 'Request failed';
+        : status === 403
+          ? 'Request was not permitted'
+          : status === 404
+            ? 'Requested resource was not found'
+            : status === 500
+              ? 'Server error'
+              : 'Request failed';
     return `${label} (${status})`;
   }
   return 'Network request failed';

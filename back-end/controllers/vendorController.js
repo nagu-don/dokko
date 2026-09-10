@@ -2,6 +2,7 @@ import orderModel from "../models/orderModel.js";
 import vendorModel from "../models/vendorModel.js";
 import buildAuthController from "./authFactory.js";
 import buildGoogleAuthController from "./googleAuthFactory.js";
+import axios from "axios";
 import { authAdmin } from "../middleware/authMiddleware.js";
 import { assignVendor } from "../services/priorityService.js";
 import { DELIVERY_MAX_KM, STAGE_RADIUS_KM } from "../config/priorityConfig.js";
@@ -149,6 +150,84 @@ export const updateVendorLiveLocation = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Failed to update live location" });
+  }
+};
+
+// ---- routing proxy for the vendor navigation map ----
+
+// Public OSRM instances the backend relays route requests to. The vendor app
+// NEVER sends coordinates to a third-party host directly — it asks the backend
+// (POST /api/vendors/route), which tries each instance server-side so a single
+// throttled/blocked host never breaks routing.
+const OSRM_PROVIDERS = [
+  "https://router.project-osrm.org/route/v1/driving",
+  "https://routing.openstreetmap.de/routed-car/route/v1/driving",
+];
+
+const OSRM_TIMEOUT_MS = 15000;
+
+// POST /api/vendors/route (authVendor)
+// Body: { from: { lat, lng }, to: { lat, lng } }
+// Returns: { success: true, data: { distance, duration, geometry } } — the exact
+// shape the mobile navigation map consumes. Coordinates are validated to the
+// same bounds as live location (|lat|<=90, |lng|<=180), the route is picked
+// along the path of least distance (matching the previous client-side
+// behaviour), and nothing is persisted — this is a pure server-side relay.
+export const getVendorRoute = async (req, res) => {
+  try {
+    const fromLat = Number(req.body?.from?.lat);
+    const fromLng = Number(req.body?.from?.lng);
+    const toLat = Number(req.body?.to?.lat);
+    const toLng = Number(req.body?.to?.lng);
+
+    const finite = (v) => Number.isFinite(v);
+    if (
+      !finite(fromLat) || !finite(fromLng) ||
+      Math.abs(fromLat) > 90 || Math.abs(fromLng) > 180 ||
+      !finite(toLat) || !finite(toLng) ||
+      Math.abs(toLat) > 90 || Math.abs(toLng) > 180
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid latitude and longitude are required",
+      });
+    }
+
+    const coordinates = `${fromLng},${fromLat};${toLng},${toLat}`;
+
+    // Path of least distance — try each instance so a throttled host never
+    // causes routing to fail, then pick the shortest alternative.
+    for (const base of OSRM_PROVIDERS) {
+      try {
+        const { data } = await axios.get(
+          `${base}/${coordinates}?overview=full&geometries=geojson&alternatives=true`,
+          { timeout: OSRM_TIMEOUT_MS }
+        );
+        const routes = data?.routes;
+        if (!Array.isArray(routes) || routes.length === 0) continue;
+        const best = routes.reduce((a, b) => (b.distance < a.distance ? b : a));
+        const coords = best?.geometry?.coordinates;
+        if (!best || !Array.isArray(coords) || coords.length < 2) continue;
+        return res.json({
+          success: true,
+          data: {
+            distance: best.distance,
+            duration: best.duration,
+            geometry: { coordinates: coords },
+          },
+        });
+      } catch {
+        // Throttled or failed — try the next instance.
+      }
+    }
+
+    return res.status(502).json({
+      success: false,
+      message: "Routing is currently unavailable",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to fetch route" });
   }
 };
 

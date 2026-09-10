@@ -99,6 +99,12 @@ via the untyped fallback.
 
 ## Backend / web safety
 
-This app only ADDS `mobile/`. It does not modify `back-end/`,
-`front-end/`, `vendor/` or `admin/`. All money/priority/geo/payment logic
-stays server-side (see Phase 0 reference, `mobileref.txt`).
+This app only ADDS `mobile/`. It does not modify `front-end/`, `vendor/` or
+`admin/`. All money/priority/geo/payment logic stays server-side (see Phase 0
+reference, `mobileref.txt`).
+
+Routing lookups for the vendor navigation map go through the Dokko backend: the
+map posts its GPS position + the drop-off to `POST /api/vendors/route`
+(authVendor-guarded relay in `back-end/routes/vendorRouter.js` +
+`vendorController.js`), which calls its own OSRM providers in fallback order.
+The app never sends coordinates to a third-party host directly.

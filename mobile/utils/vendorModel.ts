@@ -55,6 +55,26 @@ export function vendorDistanceLabel(lang: AppLang, km: number | undefined): stri
   return t(lang, 'vendorDistanceUnit', { km });
 }
 
+/** Whole seconds remaining until a priority stage's expiry. */
+export const VENDOR_EXPIRY_URGENT_SECONDS = 10;
+
+/**
+ * Seconds until `priorityExpiresAt`, or null when the stage carries no expiry
+ * (priorityExpiresAt null — final stage, e.g. SEARCHING_CLOSEST) or the window
+ * has already passed. Purely client-side countdown against the server-provided
+ * timestamp — never triggers a refetch.
+ */
+export function vendorPrioritySecondsLeft(
+  priorityExpiresAt: string | null | undefined,
+  now: number = Date.now()
+): number | null {
+  if (!priorityExpiresAt) return null;
+  const expiry = new Date(priorityExpiresAt).getTime();
+  if (!Number.isFinite(expiry)) return null;
+  const secondsLeft = Math.ceil((expiry - now) / 1000);
+  return secondsLeft > 0 ? secondsLeft : null;
+}
+
 /**
  * Controlled mapping of ORDER-level payment status (order.paymentStatus — the
  * vendor's view) to a localized, vendor-appropriate label. Values come from

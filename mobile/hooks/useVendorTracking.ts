@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import { updateVendorLiveLocation } from '@/services/vendors';
 import { isApiError } from '@/services/api';
@@ -36,12 +36,26 @@ export type VendorTrackingStatus =
   | 'active'
   | 'unavailable';
 
+/**
+ * Result of useVendorLiveLocation:
+ *  - status: the current tracked state (see VendorTrackingStatus)
+ *  - retry: user-initiated restart of the foreground permission flow + live
+ *    reporting. It re-checks location services, re-requests foreground
+ *    permission (the OS may re-prompt if the vendor denied once), and resumes
+ *    reporting — a no-op when the tracker is not active.
+ */
+export interface VendorLiveLocation {
+  status: VendorTrackingStatus;
+  retry: () => void;
+}
+
 export const VENDOR_TRACK_INTERVAL_MS = 10000;
 
-export function useVendorLiveLocation(active: boolean): VendorTrackingStatus {
+export function useVendorLiveLocation(active: boolean): VendorLiveLocation {
   const [status, setStatus] = useState<VendorTrackingStatus>('idle');
   const activeRef = useRef(active);
   const startedRef = useRef(false);
+  const startRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     activeRef.current = active;
@@ -94,7 +108,7 @@ export function useVendorLiveLocation(active: boolean): VendorTrackingStatus {
       try {
         const servicesOn = await Location.hasServicesEnabledAsync();
         if (!servicesOn) {
-          setStatus('unavailable');
+          if (!cancelled) setStatus('unavailable');
           return;
         }
         let permission = await Location.getForegroundPermissionsAsync();
@@ -102,18 +116,33 @@ export function useVendorLiveLocation(active: boolean): VendorTrackingStatus {
           permission = await Location.requestForegroundPermissionsAsync();
         }
         if (permission.status !== 'granted' || cancelled) {
-          setStatus('unavailable');
+          if (!cancelled) setStatus('unavailable');
           return;
         }
         permissionGranted = true;
         setStatus('preparing');
         await reportOnce();
-        intervalId = setInterval(() => {
-          void reportOnce();
-        }, VENDOR_TRACK_INTERVAL_MS);
+        if (!cancelled) {
+          intervalId = setInterval(() => {
+            void reportOnce();
+          }, VENDOR_TRACK_INTERVAL_MS);
+        }
       } catch {
         if (!cancelled) setStatus('unavailable');
       }
+    };
+
+    // Manual retry entry point for the screen (e.g. an "unavailable" strip):
+    // re-checks services, re-requests foreground permission (the OS may
+    // prompt again), then resumes reporting. Only runs while this tracker is
+    // alive and active — a no-op otherwise, preserving the foreground-only /
+    // Processing-gated lifecycle.
+    startRef.current = () => {
+      if (!activeRef.current || cancelled) return;
+      stop();
+      permissionGranted = false;
+      setStatus('preparing');
+      void start();
     };
 
     void start();
@@ -124,5 +153,9 @@ export function useVendorLiveLocation(active: boolean): VendorTrackingStatus {
     };
   }, [active]);
 
-  return status;
+  const retry = useCallback(() => {
+    startRef.current();
+  }, []);
+
+  return { status, retry };
 }

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/form';
 import { LoadingView } from '@/components/LoadingView';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { VendorNavBar } from '@/components/vendor';
+import { VendorExpiryBadge, VendorNavBar } from '@/components/vendor';
 import { useVendorProfile, useVendorRequests } from '@/hooks/useVendorRequests';
 import { t, money, num, iname } from '@/i18n';
 import { fs, lh, radius, spacing } from '@/theme';
@@ -121,6 +121,7 @@ export default function VendorDashboardScreen() {
                 </Text>
 
                 <View style={styles.badges}>
+                  <VendorExpiryBadge expiresAt={order.priorityExpiresAt} />
                   {typeof order.distanceKm === 'number' && (
                     <View style={[styles.badge, { backgroundColor: palette.primary }]}>
                       <Text style={[styles.badgeText, { color: palette.primaryText }]}>

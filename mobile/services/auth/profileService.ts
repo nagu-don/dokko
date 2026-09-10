@@ -27,7 +27,9 @@ export const BOOT_VALIDATE_TIMEOUT_MS = 8000;
  * Best-effort validation of a restored token. Returns true when the session
  * is still accepted by the backend, false when it was explicitly rejected.
  *
- * - A 401/403 (invalid/expired token) clears state and returns false.
+ * - A 401 (invalid/expired token) clears state and returns false.
+ *   A 403 from /me is unlikely (auth middleware only returns 401) but is
+ *   also treated as a session failure defensively.
  * - A network/timeout failure returns undefined: we do NOT log the user out
  *   just because they launched offline — offline launch should restore.
  */

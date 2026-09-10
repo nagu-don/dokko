@@ -279,8 +279,9 @@ export default function VendorCollectPaymentScreen() {
           </View>
         ) : null}
 
-        {/* Dev-only mock completion (hidden behind a subtle link). */}
-        {!isCashOrder && view !== 'success' ? (
+        {/* Dev-only mock completion — mirrors the backend's mock provider
+            gate (NODE_ENV !== 'production') so it never renders in release builds. */}
+        {__DEV__ && !isCashOrder && view !== 'success' ? (
           <Pressable
             onPress={() => {
               if (paymentId && !completeMock.isPending) completeMock.mutate(paymentId);

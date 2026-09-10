@@ -28,6 +28,17 @@ export interface UpdateVendorLocationInput {
   lng: number;
 }
 
+/**
+ * One driving route from POST /api/vendors/route — the backend's relay of its
+ * OSRM providers (path of least distance). `geometry.coordinates` is the
+ * LineString as [lng, lat] pairs, exactly what MapLibre consumes.
+ */
+export interface VendorRouteResult {
+  distance: number;
+  duration: number;
+  geometry: { coordinates: [number, number][] };
+}
+
 /** PATCH /api/vendors/payout request body. */
 export interface UpdateVendorPayoutInput {
   payoutMethod: 'bank';
@@ -113,6 +124,12 @@ export interface VendorPresentedOrder {
   acceptedAt?: string | null;
   completedAt?: string | null;
   priorityStage: string;
+  /**
+   * When this priority-stage search window expires (ISO date string), or null
+   * in a final stage with no expiry (e.g. SEARCHING_CLOSEST). Drives the
+   * client-side countdown badge; the server remains the expiry authority.
+   */
+  priorityExpiresAt: string | null;
   createdAt?: string;
   distanceKm?: number;
   isClosestVendor?: boolean;

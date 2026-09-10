@@ -6,6 +6,7 @@ import {
   vendorProfile,
   updateVendorLocation,
   updateVendorLiveLocation,
+  getVendorRoute,
   getPayoutInfo,
   updatePayoutInfo,
   listNewRequests,
@@ -34,6 +35,7 @@ vendorRouter.get("/", authAdmin, listVendors);
 vendorRouter.get("/me", authVendor, vendorProfile);
 vendorRouter.patch("/location", authVendor, updateVendorLocation);
 vendorRouter.patch("/live-location", authVendor, updateVendorLiveLocation);
+vendorRouter.post("/route", authVendor, getVendorRoute);
 
 vendorRouter.get("/payout", authVendor, getPayoutInfo);
 vendorRouter.patch("/payout", authVendor, updatePayoutInfo);

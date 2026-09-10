@@ -23,9 +23,10 @@ import type { LatLng, UpdateVendorLocationInput, UpdateVendorPayoutInput, Vendor
  * pull-to-refresh on the dashboard / the explicit Refresh button on the
  * request detail screen. It is never polled (no refetchInterval) and never
  * auto-refetched on mount, so the page cannot refresh behind the user's back.
- * Stage/window expiry stays server-authoritative: the backend exposes no
- * priorityExpiresAt in `presentOrder`, so the app never locally expires a
- * request; it only refetches when prompted.
+ * Stage/window expiry stays server-authoritative: the backend exposes
+ * `priorityExpiresAt` in `presentOrder`, and the app only renders a local
+ * countdown from it — it never locally expires a request or refetches on its
+ * own; it only refetches when prompted.
  *
  * Phase 10 adds:
  *  - accept mutation → PATCH /api/vendors/requests/accept/:id

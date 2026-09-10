@@ -89,7 +89,8 @@ export default function VendorAcceptedOrderScreen() {
   const isCompleted = order?.status === 'Delivered';
 
   // Foreground live-location reporting while delivering (Phase 14C).
-  useVendorLiveLocation(isProcessing);
+  const { status: trackingStatus, retry: retryTracking } =
+    useVendorLiveLocation(isProcessing);
 
   // "Show in map" navigation modal (vendor web RouteMap parity).
   const [mapVisible, setMapVisible] = useState(false);
@@ -264,6 +265,49 @@ export default function VendorAcceptedOrderScreen() {
             </Text>
           ) : null}
         </View>
+
+        {/* Live-location tracking status (only while the order is out for delivery) */}
+        {isProcessing && trackingStatus !== 'idle' ? (
+          <View
+            style={[
+              styles.trackingStrip,
+              {
+                backgroundColor:
+                  trackingStatus === 'unavailable'
+                    ? palette.surface
+                    : palette.accentGreenBg,
+                borderColor:
+                  trackingStatus === 'unavailable'
+                    ? palette.danger
+                    : palette.accentGreen,
+              },
+            ]}
+          >
+            <Text style={[styles.trackingStripText, { color: palette.text }]}>
+              {trackingStatus === 'unavailable'
+                ? t(lang, 'vendorTrackingUnavailable')
+                : trackingStatus === 'active'
+                  ? t(lang, 'vendorTrackingActive')
+                  : t(lang, 'vendorTrackingPreparing')}
+            </Text>
+            {trackingStatus === 'unavailable' ? (
+              <Pressable
+                onPress={retryTracking}
+                accessibilityRole="button"
+                accessibilityLabel={t(lang, 'retry')}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.trackingRetryBtn,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <Text style={[styles.trackingRetryText, { color: palette.primary }]}>
+                  {t(lang, 'retry')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Customer */}
         <Section title={t(lang, 'vendorRequestCustomer')} palette={palette}>
@@ -678,6 +722,31 @@ const styles = StyleSheet.create({
   },
   stageValue: {
     fontSize: fs(15),
+    fontWeight: '700',
+  },
+  trackingStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  trackingStripText: {
+    flex: 1,
+    fontSize: fs(13),
+    lineHeight: lh(18),
+  },
+  trackingRetryBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackingRetryText: {
+    fontSize: fs(13),
     fontWeight: '700',
   },
   card: {

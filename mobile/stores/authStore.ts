@@ -52,7 +52,7 @@ function failureOf(error: unknown, fallback: string): AuthAttempt {
   return { ok: false, message, kind: 'unknown' };
 }
 
-/** Wire the axios 401/403 -> session-clear hook exactly once per process. */
+/** Wire the axios 401 -> session-clear hook exactly once per process. */
 let unauthorizedWired = false;
 function wireUnauthorized(logout: () => Promise<void>): void {
   if (unauthorizedWired) return;
@@ -82,7 +82,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       setAuthToken(restored.token);
 
       // Session validation: only clear when the backend explicitly rejects the
-      // token (401/403). Offline/timeout launch keeps the restored session.
+      // token (401 only — 403 is a business-rule denial, not a session issue).
+      // Offline/timeout launch keeps the restored session.
       const valid = await validateSession(restored.role);
       if (valid === false) {
         await get().logout();
