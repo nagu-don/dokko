@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 import { appendCrc, encodeTlv, parseTlv, validateEmvcoQr, validateNepalQr, QrValidationError } from "./emvco.js";
+import logger from "../utils/logger.js";
 
 export async function generateUnifiedQr({ merchantAccountTemplate, merchantName, merchantCity, amount, reference }) {
   const account = parseTlv(merchantAccountTemplate, "merchant account template");
@@ -15,7 +16,7 @@ export async function generateUnifiedQr({ merchantAccountTemplate, merchantName,
   ].join("");
   const qrPayload = appendCrc(root);
   validateEmvcoQr(qrPayload);
-  console.info("Generated raw EMVCo test QR payload:", qrPayload);
+  logger.info({ qrPayload }, "Generated raw EMVCo test QR payload");
   return { qrPayload, qrData: await QRCode.toDataURL(qrPayload, { width: 300, margin: 2, errorCorrectionLevel: "M" }) };
 }
 

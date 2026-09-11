@@ -10,6 +10,7 @@ import {
   removeAdmin,
   getMe,
   updateFinancePermission,
+  changePassword,
 } from "../controllers/adminController.js";
 import {
   getCommissionConfig,
@@ -34,6 +35,7 @@ adminRouter.post("/login", adminLoginLimiter, loginAdmin);
 
 // ── Current admin profile (requires active admin) ─────────────
 adminRouter.get("/me", authAdmin, getMe);
+adminRouter.patch("/change-password", authAdmin, changePassword);
 
 // ── Admin management (requires active admin) ─────────────────
 adminRouter.get("/pending", authAdmin, listPendingAdmins);

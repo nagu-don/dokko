@@ -586,4 +586,23 @@ export const en = {
   vendorLoadFailedNotices: 'Could not load notices',
   vendorLoadFailedNoticesHint: 'Check your connection and try again.',
   vendorNoticePostedOn: 'Posted {date}',
+
+  // error boundary (Prompt 11)
+  errorBoundaryTitle: 'Something went wrong',
+  errorBoundaryMessage: 'An unexpected error occurred. Tap below to try again.',
+  errorBoundaryRetry: 'Try again',
+
+  // customer report-a-problem (Prompt 12)
+  reportProblem: 'Report a problem',
+  reportProblemTitle: 'Report a problem',
+  reportProblemPlaceholder: 'What went wrong? Give us the details…',
+  reportProblemSubmit: 'Submit report',
+  reportProblemSuccess: 'Thank you — your report has been received.',
+  reportProblemError: 'We could not send your report. Please try again.',
+  reportOrderIssue: 'Report an issue with this order',
+  callVendor: 'Call vendor',
+  reportProblemDescriptionLabel: 'Describe the problem',
+  reportProblemDescriptionShort: 'Please describe the problem in at least 10 characters.',
+  reportProblemEmailLabel: 'Contact email (optional)',
+  reportProblemEmailPlaceholder: 'you@example.com',
 };

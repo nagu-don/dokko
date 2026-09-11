@@ -2,6 +2,7 @@ import userModel from "../models/userModel.js";
 import orderModel from "../models/orderModel.js";
 import buildAuthController from "./authFactory.js";
 import buildGoogleAuthController from "./googleAuthFactory.js";
+import logger from "../utils/logger.js";
 
 const { register: registerUser, login: loginUser } = buildAuthController(userModel);
 const { googleAuth: googleAuthUser } = buildGoogleAuthController(userModel);
@@ -17,7 +18,7 @@ const getProfile = async (req, res) => {
     }
     res.json({ success: true, data: user });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch profile");
     res.status(500).json({ success: false, message: "Failed to fetch profile" });
   }
 };
@@ -50,7 +51,7 @@ const updatePhone = async (req, res) => {
 
     res.json({ success: true, data: user });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update phone");
     res.status(500).json({ success: false, message: "Failed to update phone" });
   }
 };
@@ -58,9 +59,21 @@ const updatePhone = async (req, res) => {
 // ADMIN — list all registered users + how many orders each has placed
 const listUsers = async (req, res) => {
   try {
-    const users = await userModel.find().select("-password").sort({ createdAt: -1 });
+    const { page = 1, limit = 20 } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [users, total] = await Promise.all([
+      userModel.find().select("-password").sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      userModel.countDocuments(),
+    ]);
+
+    const userIds = users.map((u) => u._id);
 
     const counts = await orderModel.aggregate([
+      { $match: { user: { $in: userIds } } },
       { $group: { _id: "$user", totalOrders: { $sum: 1 }, totalKg: { $sum: "$totalQuantity" } } },
     ]);
 
@@ -75,9 +88,13 @@ const listUsers = async (req, res) => {
       };
     });
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch users");
     res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
 };

@@ -2,11 +2,12 @@ import express from "express";
 import { placeOrder, listOrders, updateOrderStatus, myOrders, listOrdersByVendor, getAdditionalChargesConfig, getOrderVendorLocation } from "../controllers/orderController.js";
 import { getOrderPayment, initiateCustomerPayment } from "../controllers/paymentController.js";
 import { authUser, authAdmin } from "../middleware/authMiddleware.js";
+import { orderPlacementLimiter } from "../middleware/rateLimiter.js";
 
 const orderRouter = express.Router();
 
 orderRouter.get("/config/additional-charges", getAdditionalChargesConfig);
-orderRouter.post("/place", authUser, placeOrder);
+orderRouter.post("/place", authUser, orderPlacementLimiter, placeOrder);
 orderRouter.get("/list", authAdmin, listOrders);
 orderRouter.get("/my", authUser, myOrders);
 orderRouter.get("/vendor/:vendorId", authAdmin, listOrdersByVendor);

@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import adminModel, { ADMIN_STATUSES } from "../models/adminModel.js";
 import adminActivityModel from "../models/adminActivityModel.js";
+import { isValidEmail, isStrongPassword } from "../utils/validators.js";
+import logger from "../utils/logger.js";
 
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "");
 
@@ -10,7 +12,7 @@ const logAdminActivity = async (adminId, action, description = "", metadata = {}
   try {
     await adminActivityModel.create({ adminId, action, description, metadata });
   } catch (err) {
-    console.error("Failed to log admin activity:", err.message);
+    logger.error({ err }, "Failed to log admin activity");
   }
 };
 
@@ -26,6 +28,13 @@ const registerAdmin = async (req, res) => {
       });
     }
 
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address",
+      });
+    }
+
     if (!/^\d{10}$/.test(phone)) {
       return res.status(400).json({
         success: false,
@@ -33,16 +42,16 @@ const registerAdmin = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    if (!isStrongPassword(password)) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters",
+        message: "Password must be at least 8 characters and include a mix of letters, numbers, or symbols",
       });
     }
 
     const existingEmail = await adminModel.findOne({ email });
     if (existingEmail) {
-      return res.json({
+      return res.status(409).json({
         success: false,
         message: "An account with this email already exists",
       });
@@ -50,7 +59,7 @@ const registerAdmin = async (req, res) => {
 
     const existingPhone = await adminModel.findOne({ phone });
     if (existingPhone) {
-      return res.json({
+      return res.status(409).json({
         success: false,
         message: "An account with this phone number already exists",
       });
@@ -86,13 +95,13 @@ const registerAdmin = async (req, res) => {
       });
     }
     if (error.code === 11000) {
-      return res.json({
+      return res.status(409).json({
         success: false,
         message: "An account with this email or phone already exists",
       });
     }
 
-    console.error(error);
+    logger.error({ err: error }, "Failed to create account");
     res.status(500).json({
       success: false,
       message: "Failed to create account",
@@ -127,7 +136,7 @@ const loginAdmin = async (req, res) => {
 
     const account = await adminModel.findOne(query);
     if (!account) {
-      return res.json({
+      return res.status(401).json({
         success: false,
         message: "Invalid email/phone or password",
       });
@@ -149,7 +158,7 @@ const loginAdmin = async (req, res) => {
 
     const match = await bcrypt.compare(password, account.password);
     if (!match) {
-      return res.json({
+      return res.status(401).json({
         success: false,
         message: "Invalid email/phone or password",
       });
@@ -170,10 +179,11 @@ const loginAdmin = async (req, res) => {
         name: account.name,
         email: account.email,
         phone: account.phone,
+        mustChangePassword: account.mustChangePassword,
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to log in");
     res.status(500).json({
       success: false,
       message: "Failed to log in",
@@ -192,7 +202,7 @@ const listPendingAdmins = async (req, res) => {
       data: pending,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load pending admins");
     res.status(500).json({
       success: false,
       message: "Failed to load pending admins",
@@ -240,7 +250,7 @@ const approveAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to approve admin account");
     res.status(500).json({
       success: false,
       message: "Failed to approve admin account",
@@ -287,7 +297,7 @@ const rejectAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to reject admin account");
     res.status(500).json({
       success: false,
       message: "Failed to reject admin account",
@@ -307,7 +317,7 @@ const listAllAdmins = async (req, res) => {
       data: admins,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load admins");
     res.status(500).json({
       success: false,
       message: "Failed to load admins",
@@ -330,7 +340,7 @@ const getMe = async (req, res) => {
     }
     res.json({ success: true, data: admin });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load admin profile");
     res.status(500).json({
       success: false,
       message: "Failed to load admin profile",
@@ -398,10 +408,61 @@ const updateFinancePermission = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update finance permission");
     res.status(500).json({
       success: false,
       message: "Failed to update finance permission",
+    });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and include a mix of letters, numbers, or symbols",
+      });
+    }
+
+    const account = await adminModel.findById(req.account._id);
+    if (!account) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    const match = await bcrypt.compare(currentPassword, account.password);
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    account.password = await bcrypt.hash(newPassword, salt);
+    account.mustChangePassword = false;
+    await account.save();
+
+    logAdminActivity(req.account._id, "other", "Password changed", {});
+
+    res.json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    logger.error({ err: error }, "Failed to change password");
+    res.status(500).json({
+      success: false,
+      message: "Failed to change password",
     });
   }
 };
@@ -421,7 +482,7 @@ const getAdminActivity = async (req, res) => {
       data: activities,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load admin activity");
     res.status(500).json({
       success: false,
       message: "Failed to load admin activity",
@@ -457,7 +518,7 @@ const removeAdmin = async (req, res) => {
       message: "Admin account removed successfully",
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to remove admin account");
     res.status(500).json({
       success: false,
       message: "Failed to remove admin account",
@@ -465,4 +526,4 @@ const removeAdmin = async (req, res) => {
   }
 };
 
-export { registerAdmin, loginAdmin, listPendingAdmins, approveAdmin, rejectAdmin, listAllAdmins, getAdminActivity, removeAdmin, getMe, updateFinancePermission };
+export { registerAdmin, loginAdmin, listPendingAdmins, approveAdmin, rejectAdmin, listAllAdmins, getAdminActivity, removeAdmin, getMe, updateFinancePermission, changePassword };

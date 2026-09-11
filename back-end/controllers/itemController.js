@@ -1,6 +1,7 @@
 import fs from "fs";
 import itemModel from "../models/itemModel.js";
 import { addCommodityTranslation } from "../dataUpdate/translateData.js";
+import logger from "../utils/logger.js";
 
 const addToApproved = async (req, res) => {
   try {
@@ -29,7 +30,7 @@ const addToApproved = async (req, res) => {
       data: updatedItem,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update approval status");
 
     res.status(500).json({
       success: false,
@@ -45,7 +46,7 @@ const updateItem = async (req, res) => {
     const item = await itemModel.findById(id);
 
     if (!item) {
-      return res.json({
+      return res.status(404).json({
         success: false,
         message: "Item not found",
       });
@@ -68,10 +69,7 @@ const updateItem = async (req, res) => {
           `uploads/${item.image}`,
           (err) => {
             if (err) {
-              console.log(
-                "Failed to delete old image:",
-                err
-              );
+              logger.error({ err }, "Failed to delete old image");
             }
           }
         );
@@ -93,10 +91,7 @@ const updateItem = async (req, res) => {
           `uploads/${item.image}`,
           (err) => {
             if (err) {
-              console.log(
-                "Failed to delete old image:",
-                err
-              );
+              logger.error({ err }, "Failed to delete old image");
             }
           }
         );
@@ -153,9 +148,9 @@ const updateItem = async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    logger.error({ err: error }, "Error updating item");
 
-    res.json({
+    res.status(500).json({
       success: false,
       message: "Error updating item",
     });
@@ -173,7 +168,7 @@ const listItem = async (req, res) => {
 
   } catch (error) {
 
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch items");
 
     res.status(500).json({
       success: false,
@@ -188,7 +183,7 @@ const fetchList = async (req, res) => {
     const approvedItems = await itemModel.find({ status: true });
     res.json({ success: true, data: approvedItems });
   } catch (error) {
-    console.error("FETCH ERROR:", error);
+    logger.error({ err: error }, "Failed to fetch approved items");
     res.status(500).json({ success: false, message: "Failed to fetch items" });
   }
 };

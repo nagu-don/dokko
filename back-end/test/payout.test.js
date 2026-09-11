@@ -24,6 +24,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import vendorModel from "../models/vendorModel.js";
 import settlementModel from "../models/settlementModel.js";
 import vendorRouter from "../routes/vendorRouter.js";
+import { decryptField } from "../utils/fieldEncryption.js";
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
@@ -291,7 +292,7 @@ assert(unchangedSettlement.payoutMethod === "bank", "Settlement top-level payout
 const updatedVendor = await vendorModel.findById(testVendor._id);
 assert(updatedVendor.payoutMethod === "bank", "Vendor payoutMethod changed to bank");
 assert(updatedVendor.payoutBankName === "Global IME Bank", "Vendor bank name updated");
-assert(updatedVendor.payoutAccountNumber === "9876543210", "Vendor account number updated");
+assert(decryptField(updatedVendor.payoutAccountNumber) === "9876543210", "Vendor account number updated (encrypted at rest)");
 
 // ──────────────────────────────────────────────────────────────
 // 9. Bank account number: only last 4 chars shown

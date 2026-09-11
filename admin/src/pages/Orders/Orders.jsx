@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import './Orders.css'
 import { getAuthHeaders, isAuthError } from '../../utils/api'
 import { matchesQuery, sortRows } from '../../utils/searchSort'
 import SearchSort from '../../components/SearchSort/SearchSort'
+import Pagination from '../../components/Pagination/Pagination'
 
 const STATUSES = ['Pending', 'Processing', 'Delivered', 'Cancelled'];
 
@@ -66,29 +67,38 @@ const Orders = ({ url }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // search + sort controls
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState({ key: 'createdAt', dir: 'desc' });
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
+      const params = { page, limit: 20 };
+      if (filter !== 'All') params.status = filter;
+
       const response = await axios.get(`${url}/api/orders/list`, {
         headers: getAuthHeaders(),
+        params,
       });
-      if (response.data.success) setOrders(response.data.data);
+      if (response.data.success) {
+        setOrders(response.data.data);
+        setTotalPages(response.data.pagination.pages);
+      }
     } catch (error) {
       if (isAuthError(error)) toast.error('Session expired. Please log in again.');
       else toast.error('Failed to fetch orders');
     } finally {
       setLoading(false);
     }
-  };
+  }, [url, page, filter]);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const updateStatus = async (id, status) => {
     try {
@@ -108,9 +118,7 @@ const Orders = ({ url }) => {
   };
 
   const visible = sortRows(
-    orders
-      .filter((o) => filter === 'All' || o.status === filter)
-      .filter((o) => matchesQuery(query, orderSearchValues(o))),
+    orders.filter((o) => matchesQuery(query, orderSearchValues(o))),
     sort.key,
     sort.dir,
     ORDER_SORT_FIELDS
@@ -126,14 +134,9 @@ const Orders = ({ url }) => {
             <button
               key={s}
               className={`filter-chip ${filter === s ? 'active' : ''}`}
-              onClick={() => setFilter(s)}
+              onClick={() => { setFilter(s); setPage(1); }}
             >
               {s}
-              {s !== 'All' && (
-                <span className='chip-count'>
-                  {orders.filter((o) => o.status === s).length}
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -236,6 +239,7 @@ const Orders = ({ url }) => {
           </div>
         ))
       )}
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
     </div>
   );
 };

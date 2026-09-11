@@ -13,6 +13,7 @@ import Settlements from './pages/Settlements/Settlements'
 import AdminRequests from './pages/AdminRequests/AdminRequests'
 import ManageAdmins from './pages/ManageAdmins/ManageAdmins'
 import CashTransactions from './pages/CashTransactions/CashTransactions'
+import IssueReports from './pages/IssueReports/IssueReports'
 import LoginGate from './pages/LoginGate/LoginGate'
 import AuthPopup from './components/AuthPopup/AuthPopup'
 import useAdminAuth from './hooks/useAdminAuth'
@@ -50,6 +51,7 @@ function App() {
           <Route path='/vendors' element={<Vendors url={url}/>}/>
           <Route path='/notices' element={<Notices url={url}/>}/>
           <Route path='/settlements' element={<Settlements url={url}/>}/>
+          <Route path='/issue-reports' element={<IssueReports url={url}/>}/>
           <Route path='/admin-requests' element={<AdminRequests url={url}/>}/>
           <Route path='/manage-admins' element={<ManageAdmins url={url}/>}/>
           <Route path='/cash-transactions' element={<CashTransactions url={url}/>}/>

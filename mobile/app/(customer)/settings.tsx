@@ -106,6 +106,18 @@ export default function SettingsScreen() {
             <Text style={[styles.addBtnText, { color: palette.primary }]}>{t(lang, 'addNewLocation')}</Text>
           </Pressable>
         </View>
+
+        <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Pressable
+            onPress={() => router.push('/report-problem')}
+            accessibilityRole="button"
+            accessibilityLabel={t(lang, 'reportProblem')}
+            style={({ pressed }) => [styles.reportRow, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.label, { color: palette.text }]}>{t(lang, 'reportProblem')}</Text>
+            <Text style={[styles.reportChevron, { color: palette.textMuted }]}>›</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <LocationPickerModal
@@ -221,5 +233,15 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  reportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  reportChevron: {
+    fontSize: 24,
+    lineHeight: 24,
   },
 });

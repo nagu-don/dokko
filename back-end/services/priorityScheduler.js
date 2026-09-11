@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import orderModel from "../models/orderModel.js";
 import { advanceStage } from "./priorityService.js";
 import { PRIORITY_CONFIG } from "../config/priorityConfig.js";
+import logger from "../utils/logger.js";
+import { logSystemIssue } from "../utils/systemIssue.js";
 
 // ── configuration ───────────────────────────────────────────────
 const POLL_INTERVAL_MS = PRIORITY_CONFIG.SCHEDULER_POLL_INTERVAL_MS;
@@ -46,12 +48,22 @@ const tick = async () => {
     for (const order of stuckOrders) {
       try {
         await advanceStage(order);
-      } catch {
+      } catch (err) {
         // individual order failure should not abort the batch
+        logger.error({ err, orderId: order._id }, "priority-scheduler: failed to advance one order");
+        logSystemIssue("priority-scheduler: failed to advance one order", {
+          severity: "high",
+          metadata: { orderId: String(order._id), error: err?.message },
+        });
       }
     }
-  } catch {
+  } catch (err) {
     // scheduler-level error — swallow and continue
+    logger.error({ err }, "priority-scheduler tick failed");
+    logSystemIssue("priority-scheduler tick failed", {
+      severity: "high",
+      metadata: { error: err?.message },
+    });
   }
 };
 
@@ -77,7 +89,7 @@ export const startScheduler = async () => {
   await tick();
   timerId = setInterval(tick, POLL_INTERVAL_MS);
 
-  console.log(`[priority-scheduler] started (poll every ${POLL_INTERVAL_MS / 1000}s)`);
+  logger.info(`[priority-scheduler] started (poll every ${POLL_INTERVAL_MS / 1000}s)`);
 };
 
 // Stops the polling loop gracefully.
@@ -85,6 +97,6 @@ export const stopScheduler = () => {
   if (timerId) {
     clearInterval(timerId);
     timerId = null;
-    console.log("[priority-scheduler] stopped");
+    logger.info("[priority-scheduler] stopped");
   }
 };

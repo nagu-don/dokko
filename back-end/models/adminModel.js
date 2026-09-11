@@ -12,7 +12,10 @@ const adminSchema = new mongoose.Schema({
     approvedAt: {type: Date, default: null},
     adminNote: {type: String, default: null, trim: true},
     // finance permission — gates settlement approve/pay actions
-    canManageFinance: {type: Boolean, default: false}
+    canManageFinance: {type: Boolean, default: false},
+    // set to true when the prime admin is bootstrapped (env or auto-generated)
+    // so the admin panel can force a password-change screen on first login
+    mustChangePassword: {type: Boolean, default: false}
 });
 
 const adminModel = mongoose.models.admin || mongoose.model("admin", adminSchema);

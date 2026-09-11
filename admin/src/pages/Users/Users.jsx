@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import './Users.css'
 import { getAuthHeaders, isAuthError } from '../../utils/api'
 import { matchesQuery, sortRows } from '../../utils/searchSort'
 import SearchSort from '../../components/SearchSort/SearchSort'
+import Pagination from '../../components/Pagination/Pagination'
 
 // sortable parameters for users
 const USER_SORT_FIELDS = {
@@ -36,6 +37,8 @@ const fmtDate = (iso) =>
 const Users = ({ url }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // search + sort controls
   const [query, setQuery] = useState('');
@@ -46,24 +49,28 @@ const Users = ({ url }) => {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${url}/api/users/all`, {
         headers: getAuthHeaders(),
+        params: { page, limit: 20 },
       });
-      if (response.data.success) setUsers(response.data.data);
+      if (response.data.success) {
+        setUsers(response.data.data);
+        setTotalPages(response.data.pagination.pages);
+      }
     } catch (error) {
       if (isAuthError(error)) toast.error('Session expired. Please log in again.');
       else toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
     }
-  };
+  }, [url, page]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const toggleUserOrders = async (userId) => {
     if (openUserId === userId) {
@@ -183,6 +190,7 @@ const Users = ({ url }) => {
           })}
         </div>
       )}
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
     </div>
   );
 };

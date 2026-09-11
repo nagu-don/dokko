@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { createHash } from "node:crypto";
+import logger from "../utils/logger.js";
 
 const GOOGLE_JWKS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/oauth2/v3/certs")
@@ -119,7 +120,7 @@ const buildGoogleAuthController = (Model) => {
         },
       });
     } catch (error) {
-      console.error("Google auth error:", error);
+      logger.error({ err: error }, "Google auth error");
       res.status(401).json({
         success: false,
         message: "Invalid Google credential",

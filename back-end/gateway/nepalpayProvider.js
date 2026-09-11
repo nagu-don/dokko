@@ -1,6 +1,7 @@
 import PaymentProvider from "./providerBase.js";
 import { generateNchlQr, loadPfxCertificate, formatAmount } from "./nchlApi.js";
 import { validateEmvcoQr } from "./emvco.js";
+import logger from "../utils/logger.js";
 
 export default class NepalpayProvider extends PaymentProvider {
   #config;
@@ -37,11 +38,11 @@ export default class NepalpayProvider extends PaymentProvider {
     const pfxBuffer = loadPfxCertificate(this.#config.pfxPath);
 
     // ── 3. Call NCHL POST /qr/generateQR ─────────────────────
-    console.info("NEPALPAY QR generation started", {
+    logger.info({
       paymentId: merchantRef,
       merchantReference: merchantRef,
       transactionAmount,
-    });
+    }, "NEPALPAY QR generation started");
 
     try {
       const response = await generateNchlQr({
@@ -70,12 +71,12 @@ export default class NepalpayProvider extends PaymentProvider {
 
       const { validationTraceId, qrString } = response.data;
 
-      console.info("NEPALPAY QR generation succeeded", {
+      logger.info({
         responseCode: response.responseCode,
         responseStatus: response.responseStatus,
         validationTraceId,
         merchantReference: merchantRef,
-      });
+      }, "NEPALPAY QR generation succeeded");
 
       return {
         flow: "qr",
@@ -87,10 +88,11 @@ export default class NepalpayProvider extends PaymentProvider {
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       };
     } catch (err) {
-      console.error("NEPALPAY QR generation failed", {
+      logger.error({
+        err,
         responseCode: err.code,
         merchantReference: merchantRef,
-      });
+      }, "NEPALPAY QR generation failed");
       throw err;
     }
   }

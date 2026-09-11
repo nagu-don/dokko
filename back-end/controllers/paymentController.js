@@ -8,6 +8,7 @@ import vendorModel from "../models/vendorModel.js";
 import companyAccountModel from "../models/companyAccountModel.js";
 import commissionConfigModel from "../models/commissionConfigModel.js";
 import { getProviderByName, getGatewayStatus } from "../gateway/index.js";
+import logger from "../utils/logger.js";
 
 // ── generate a unique merchant reference per payment attempt ───
 const makeMerchantRef = (orderId) => {
@@ -280,7 +281,7 @@ export const initiatePayment = async (req, res) => {
       ...(result.data ? { data: result.data } : {}),
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to initiate vendor payment");
     res.status(500).json({ success: false, message: "Failed to initiate payment" });
   }
 };
@@ -321,7 +322,7 @@ export const initiateCustomerPayment = async (req, res) => {
       ...(result.data ? { data: result.data } : {}),
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to initiate customer payment");
     res.status(500).json({ success: false, message: "Failed to initiate payment" });
   }
 };
@@ -395,7 +396,7 @@ export const getOrderPayment = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load payment state");
     res.status(500).json({ success: false, message: "Failed to load payment state" });
   }
 };
@@ -428,7 +429,7 @@ async function formatPaymentResponse(payment, providerResult = null) {
       } catch (qrErr) {
         // QR rendering failure — do not fail the whole request; the payment
         // record still holds the provider's output.
-        console.error("QR image render failed:", qrErr.message);
+        logger.error({ err: qrErr }, "QR image render failed");
       }
     }
   } else if (payment.qrString) {
@@ -436,7 +437,7 @@ async function formatPaymentResponse(payment, providerResult = null) {
     try {
       data.qrData = await QRCode.toDataURL(payment.qrString, { width: 300, margin: 2, errorCorrectionLevel: "M" });
     } catch (qrErr) {
-      console.error("QR image render failed:", qrErr.message);
+      logger.error({ err: qrErr }, "QR image render failed");
     }
   }
 
@@ -554,7 +555,7 @@ export const recordCashPayment = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Cash payment error:", error);
+    logger.error({ err: error }, "Cash payment error");
     res.status(500).json({ success: false, message: error.message || "Failed to record cash payment" });
   }
 };
@@ -602,7 +603,7 @@ export const cancelPayment = async (req, res) => {
       message: "Payment cancelled successfully",
     });
   } catch (error) {
-    console.error("Cancel payment error:", error);
+    logger.error({ err: error }, "Cancel payment error");
     res.status(500).json({ success: false, message: error.message || "Failed to cancel payment" });
   }
 };
@@ -657,7 +658,7 @@ export const revokeCashPayment = async (req, res) => {
       message: "Cash payment revoked. You can now select QR payment.",
     });
   } catch (error) {
-    console.error("Revoke cash payment error:", error);
+    logger.error({ err: error }, "Revoke cash payment error");
     res.status(500).json({ success: false, message: error.message || "Failed to revoke cash payment" });
   }
 };
@@ -701,7 +702,7 @@ export const getPaymentStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to check payment status");
     res.status(500).json({ success: false, message: "Failed to check payment status" });
   }
 };
@@ -1082,7 +1083,7 @@ const verifyAndCompletePayment = async ({
     // Duplicate key error means settlement already exists — that's fine.
     // Any other error is logged but does not fail the payment.
     if (settlementErr.code !== 11000) {
-      console.error("Settlement creation failed:", settlementErr.message);
+      logger.error({ err: settlementErr }, "Settlement creation failed");
     }
   }
 
@@ -1178,7 +1179,7 @@ export const triggerVerification = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Verification trigger error:", error);
+    logger.error({ err: error }, "Verification trigger error");
     res.status(500).json({ success: false, message: "Failed to verify payment" });
   }
 };

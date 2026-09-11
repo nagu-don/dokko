@@ -26,6 +26,7 @@ export default function CustomerLayout() {
       <Stack.Screen name="orders/[id]" options={{ title: 'Order' }} />
       <Stack.Screen name="payment/[orderId]" options={{ title: 'Payment' }} />
       <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+      <Stack.Screen name="report-problem" options={{ title: 'Report a problem' }} />
     </Stack>
   );
 }

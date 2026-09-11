@@ -9,6 +9,7 @@ import { useContext } from 'react'
 import { Context } from './context/Context'
 import GetApp from './pages/get-app/GetApp.jsx'
 import ContactUs from './pages/contact-us/ContactUs.jsx'
+import Footer from './components/Footer/Footer'
 
 function App() {
   const { showAuth, toastMsg } = useContext(Context);
@@ -24,6 +25,7 @@ function App() {
         <Route path="/contact-us" element={<ContactUs/>}/>
         <Route path="/cart" element={<Cart/>}/>
       </Routes>
+      <Footer />
       {showAuth && <AuthPopup/>}
       {toastMsg && <div className='app-toast'>{toastMsg}</div>}
     </div>

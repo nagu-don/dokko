@@ -1,11 +1,12 @@
 import noticeModel from "../models/noticeModel.js";
 import adminActivityModel from "../models/adminActivityModel.js";
+import logger from "../utils/logger.js";
 
 const logAdminActivity = async (adminId, action, description = "", metadata = {}) => {
   try {
     await adminActivityModel.create({ adminId, action, description, metadata });
   } catch (err) {
-    console.error("Failed to log admin activity:", err.message);
+    logger.error({ err }, "Failed to log admin activity");
   }
 };
 
@@ -52,7 +53,7 @@ const createNotice = async (req, res) => {
       data: notice,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to post notice");
     res.status(500).json({
       success: false,
       message: "Failed to post notice",
@@ -70,7 +71,7 @@ const listNotices = async (req, res) => {
 
     res.json({ success: true, data: notices });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load notices");
     res.status(500).json({
       success: false,
       message: "Failed to load notices",
@@ -100,7 +101,7 @@ const deleteNotice = async (req, res) => {
 
     res.json({ success: true, message: "Notice deleted" });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to delete notice");
     res.status(500).json({
       success: false,
       message: "Failed to delete notice",
@@ -118,7 +119,7 @@ const listVendorNotices = async (req, res) => {
 
     res.json({ success: true, data: notices });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load vendor notices");
     res.status(500).json({
       success: false,
       message: "Failed to load notices",

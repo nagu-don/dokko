@@ -5,6 +5,7 @@ import './Vendors.css'
 import { getAuthHeaders, isAuthError } from '../../utils/api'
 import { matchesQuery, sortRows } from '../../utils/searchSort'
 import SearchSort from '../../components/SearchSort/SearchSort'
+import Pagination from '../../components/Pagination/Pagination'
 
 const VENDOR_SORT_FIELDS = {
   name:           { label: 'Name', get: (v) => v.name },
@@ -43,28 +44,34 @@ const Vendors = ({ url }) => {
   const [expandedVendorId, setExpandedVendorId] = useState(null);
   const [vendorOrders, setVendorOrders] = useState({});
   const [ordersLoading, setOrdersLoading] = useState({});
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState({ key: 'name', dir: 'asc' });
 
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${url}/api/vendors`, {
         headers: getAuthHeaders(),
+        params: { page, limit: 20 },
       });
-      if (response.data.success) setVendors(response.data.data);
+      if (response.data.success) {
+        setVendors(response.data.data);
+        setTotalPages(response.data.pagination.pages);
+      }
     } catch (error) {
       if (isAuthError(error)) toast.error('Session expired. Please log in again.');
       else toast.error('Failed to fetch vendors');
     } finally {
       setLoading(false);
     }
-  };
+  }, [url, page]);
 
   useEffect(() => {
     fetchVendors();
-  }, []);
+  }, [fetchVendors]);
 
   const fetchVendorOrders = async (vendorId) => {
     if (vendorOrders[vendorId]) return;
@@ -194,6 +201,7 @@ const Vendors = ({ url }) => {
           })}
         </div>
       )}
+      <Pagination page={page} totalPages={totalPages} onPage={setPage} />
     </div>
   );
 };

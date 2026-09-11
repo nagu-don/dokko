@@ -57,10 +57,46 @@ const createRegisterLimiter = (max, windowMs) =>
     handler: toJsonHandler,
   });
 
+/**
+ * Per-IP Google OAuth limiter — keyed by IP only (there is no reusable
+ * identifier until the Google credential is verified). Looser than login
+ * (default 20/window) because a legitimate client may retry a flaky OAuth
+ * handshake a few times, but still blocks token-flooding from one source.
+ */
+const createGoogleAuthLimiter = (max, windowMs) =>
+  rateLimit({
+    windowMs,
+    limit: max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(req.ip, 56),
+    handler: toJsonHandler,
+  });
+
+/**
+ * Per-authenticated-user order placement limiter — keyed by req.account._id
+ * (NOT IP). This route runs after authUser, so `req.account` is always set;
+ * IP-based limiting is the wrong shape for legitimate rapid re-ordering
+ * behind a shared NAT. Default 30/window is generous for normal use yet tight
+ * enough to stop a scripted spam loop.
+ */
+const createOrderPlacementLimiter = (max, windowMs) =>
+  rateLimit({
+    windowMs,
+    limit: max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String(req.account?._id ?? ipKeyGenerator(req.ip, 56)),
+    handler: toJsonHandler,
+  });
+
 // Defaults are tunable via environment variables:
 //   LOGIN_RATE_LIMIT_MAX           default 10 attempts / window
 //   ADMIN_LOGIN_RATE_LIMIT_MAX     default 5  attempts / window (admin is rarer + higher value)
 //   REGISTER_RATE_LIMIT_MAX        default 20 attempts / window
+//   GOOGLE_AUTH_RATE_LIMIT_MAX     default 20 attempts / window (per IP)
+//   ORDER_PLACEMENT_RATE_LIMIT_MAX default 30 attempts / window (per authenticated user)
+//   ISSUE_REPORT_RATE_LIMIT_MAX    default 30 attempts / window (per IP, public endpoint)
 //   RATE_LIMIT_WINDOW_MS           default 15 minutes
 const windowMs = envInt("RATE_LIMIT_WINDOW_MS", DEFAULT_WINDOW_MS);
 
@@ -68,3 +104,8 @@ export const userLoginLimiter = createLoginLimiter(envInt("LOGIN_RATE_LIMIT_MAX"
 export const vendorLoginLimiter = createLoginLimiter(envInt("LOGIN_RATE_LIMIT_MAX", 10), windowMs);
 export const adminLoginLimiter = createLoginLimiter(envInt("ADMIN_LOGIN_RATE_LIMIT_MAX", 5), windowMs);
 export const registerLimiter = createRegisterLimiter(envInt("REGISTER_RATE_LIMIT_MAX", 20), windowMs);
+export const googleAuthLimiter = createGoogleAuthLimiter(envInt("GOOGLE_AUTH_RATE_LIMIT_MAX", 20), windowMs);
+export const orderPlacementLimiter = createOrderPlacementLimiter(envInt("ORDER_PLACEMENT_RATE_LIMIT_MAX", 30), windowMs);
+// Same per-IP pattern as registration — this public endpoint must not become
+// a spam/DoS vector, but 30/window is generous enough for real crash reports.
+export const issueReportLimiter = createRegisterLimiter(envInt("ISSUE_REPORT_RATE_LIMIT_MAX", 30), windowMs);

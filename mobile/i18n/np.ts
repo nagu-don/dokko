@@ -583,4 +583,23 @@ export const np = {
   vendorLoadFailedNotices: 'सूचनाहरू लोड गर्न सकिएन',
   vendorLoadFailedNoticesHint: 'कनेक्सन जाँच गरी फेरि प्रयास गर्नुहोस्।',
   vendorNoticePostedOn: '{date} मा पोस्ट गरियो',
+
+  // error boundary (Prompt 11)
+  errorBoundaryTitle: 'केही गलत भयो',
+  errorBoundaryMessage: 'अनपेक्षित त्रुटि भयो। फेरि प्रयास गर्न तल ट्याप गर्नुहोस्।',
+  errorBoundaryRetry: 'फेरि प्रयास गर्नुहोस्',
+
+  // customer report-a-problem (Prompt 12)
+  reportProblem: 'समस्या रिपोर्ट गर्नुहोस्',
+  reportProblemTitle: 'समस्या रिपोर्ट गर्नुहोस्',
+  reportProblemPlaceholder: 'के गलत भयो? विवरण दिनुहोस्…',
+  reportProblemSubmit: 'रिपोर्ट पठाउनुहोस्',
+  reportProblemSuccess: 'धन्यवाद — तपाईंको रिपोर्ट प्राप्त भयो।',
+  reportProblemError: 'तपाईंको रिपोर्ट पठाउन सकिएन। फेरि प्रयास गर्नुहोस्।',
+  reportOrderIssue: 'यो अर्डरमा समस्या रिपोर्ट गर्नुहोस्',
+  callVendor: 'विक्रेतालाई कल गर्नुहोस्',
+  reportProblemDescriptionLabel: 'समस्या बताउनुहोस्',
+  reportProblemDescriptionShort: 'कृपया कम्तीमा १० अक्षरमा समस्या बताउनुहोस्।',
+  reportProblemEmailLabel: 'सम्पर्क इमेल (वैकल्पिक)',
+  reportProblemEmailPlaceholder: 'you@example.com',
 };

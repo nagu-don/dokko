@@ -5,6 +5,31 @@ import commissionConfigModel from "../models/commissionConfigModel.js";
 import orderModel from "../models/orderModel.js";
 import vendorModel from "../models/vendorModel.js";
 import paymentModel from "../models/paymentModel.js";
+import adminActivityModel from "../models/adminActivityModel.js";
+import { decryptField, maskAccountNumber } from "../utils/fieldEncryption.js";
+import logger from "../utils/logger.js";
+
+const logAdminActivity = async (adminId, action, description = "", metadata = {}) => {
+  try {
+    await adminActivityModel.create({ adminId, action, description, metadata });
+  } catch (err) {
+    logger.error({ err }, "Failed to log admin activity");
+  }
+};
+
+// Serialize a settlement for an API response with its payout destination
+// account number masked (decrypting first if it was stored encrypted).
+const presentSettlement = (settlement) => {
+  const doc = settlement.toObject ? settlement.toObject() : { ...settlement };
+  const accountNumber = doc.payoutDestination?.accountNumber;
+  if (accountNumber) {
+    doc.payoutDestination = {
+      ...doc.payoutDestination,
+      accountNumber: maskAccountNumber(decryptField(accountNumber)),
+    };
+  }
+  return doc;
+};
 
 // ════════════════════════════════════════════════════════════════
 //  COMMISSION CONFIGURATION (admin only)
@@ -33,7 +58,7 @@ export const getCommissionConfig = async (req, res) => {
 
     res.json({ success: true, data: config });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load commission config");
     res.status(500).json({ success: false, message: "Failed to load commission config" });
   }
 };
@@ -124,7 +149,7 @@ export const updateCommissionConfig = async (req, res) => {
 
     res.json({ success: true, message: "Commission config updated", data: config });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update commission config");
     res.status(500).json({ success: false, message: "Failed to update commission config" });
   }
 };
@@ -168,7 +193,7 @@ export const listSettlements = async (req, res) => {
 
     res.json({
       success: true,
-      data: settlements,
+      data: settlements.map(presentSettlement),
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -177,7 +202,7 @@ export const listSettlements = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to list settlements");
     res.status(500).json({ success: false, message: "Failed to list settlements" });
   }
 };
@@ -200,9 +225,9 @@ export const getSettlement = async (req, res) => {
       return res.status(404).json({ success: false, message: "Settlement not found" });
     }
 
-    res.json({ success: true, data: settlement });
+    res.json({ success: true, data: presentSettlement(settlement) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load settlement");
     res.status(500).json({ success: false, message: "Failed to load settlement" });
   }
 };
@@ -234,9 +259,16 @@ export const approveSettlement = async (req, res) => {
     }
     await settlement.save();
 
-    res.json({ success: true, message: "Settlement approved", data: settlement });
+    logAdminActivity(
+      req.account._id,
+      "approve_settlement",
+      `Approved settlement ${settlement._id} (vendor amount: ${settlement.vendorAmount})`,
+      { settlementId: settlement._id, vendorAmount: settlement.vendorAmount }
+    );
+
+    res.json({ success: true, message: "Settlement approved", data: presentSettlement(settlement) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to approve settlement");
     res.status(500).json({ success: false, message: "Failed to approve settlement" });
   }
 };
@@ -275,18 +307,29 @@ export const markSettlementPaid = async (req, res) => {
     if (adminNote) settlement.adminNote = adminNote;
     await settlement.save();
 
-    // Update company account ledger
-    let account = await companyAccountModel.findOne();
-    if (!account) {
-      account = await companyAccountModel.create({ name: "Dokko Company Account" });
+    // Update company account ledger atomically
+    const result = await companyAccountModel.findOneAndUpdate(
+      {},
+      {
+        $inc: { disbursedAmount: settlement.vendorAmount, pendingPayouts: -1 },
+        $setOnInsert: { name: "Dokko Company Account" },
+      },
+      { upsert: true, new: true }
+    );
+    if (result.pendingPayouts < 0) {
+      await companyAccountModel.updateOne({}, { $set: { pendingPayouts: 0 } });
     }
-    account.disbursedAmount += settlement.vendorAmount;
-    account.pendingPayouts = Math.max(0, account.pendingPayouts - 1);
-    await account.save();
 
-    res.json({ success: true, message: "Settlement marked as paid", data: settlement });
+    logAdminActivity(
+      req.account._id,
+      "mark_settlement_paid",
+      `Marked settlement ${settlement._id} as paid (vendor amount: ${settlement.vendorAmount})`,
+      { settlementId: settlement._id, vendorAmount: settlement.vendorAmount }
+    );
+
+    res.json({ success: true, message: "Settlement marked as paid", data: presentSettlement(settlement) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to mark settlement as paid");
     res.status(500).json({ success: false, message: "Failed to mark settlement as paid" });
   }
 };
@@ -318,17 +361,29 @@ export const cancelSettlement = async (req, res) => {
     }
     await settlement.save();
 
-    // Decrement pending count on company account
-    let account = await companyAccountModel.findOne();
-    if (!account) {
-      account = await companyAccountModel.create({ name: "Dokko Company Account" });
+    // Decrement pending count on company account atomically
+    const result = await companyAccountModel.findOneAndUpdate(
+      {},
+      {
+        $inc: { pendingPayouts: -1 },
+        $setOnInsert: { name: "Dokko Company Account" },
+      },
+      { upsert: true, new: true }
+    );
+    if (result.pendingPayouts < 0) {
+      await companyAccountModel.updateOne({}, { $set: { pendingPayouts: 0 } });
     }
-    account.pendingPayouts = Math.max(0, account.pendingPayouts - 1);
-    await account.save();
 
-    res.json({ success: true, message: "Settlement cancelled", data: settlement });
+    logAdminActivity(
+      req.account._id,
+      "cancel_settlement",
+      `Cancelled settlement ${settlement._id} (vendor amount: ${settlement.vendorAmount})`,
+      { settlementId: settlement._id, vendorAmount: settlement.vendorAmount }
+    );
+
+    res.json({ success: true, message: "Settlement cancelled", data: presentSettlement(settlement) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to cancel settlement");
     res.status(500).json({ success: false, message: "Failed to cancel settlement" });
   }
 };
@@ -369,7 +424,7 @@ export const getCompanyAccount = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load company account");
     res.status(500).json({ success: false, message: "Failed to load company account" });
   }
 };
@@ -430,7 +485,7 @@ export const getVendorPayables = async (req, res) => {
 
     res.json({ success: true, data: payables });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load vendor payables");
     res.status(500).json({ success: false, message: "Failed to load vendor payables" });
   }
 };
@@ -538,7 +593,7 @@ export const getCashTransactions = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load cash transactions");
     res.status(500).json({ success: false, message: "Failed to load cash transactions" });
   }
 };

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { AppText as Text } from '@/components/AppText';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -235,7 +235,27 @@ export default function OrderDetailScreen() {
                 <Text style={[styles.labelText, { color: palette.text }]}>{order.vendor.name}</Text>
               ) : null}
               {order.vendor.phone ? (
-                <Text style={[styles.meta, { color: palette.textMuted }]}>{order.vendor.phone}</Text>
+                <View style={styles.vendorPhoneRow}>
+                  <Text style={[styles.meta, { color: palette.textMuted }]}>{order.vendor.phone}</Text>
+                  <Pressable
+                    onPress={() => {
+                      const phone = order.vendor?.phone;
+                      if (phone) {
+                        Linking.openURL(`tel:${phone}`).catch(() => {});
+                      }
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(lang, 'callVendor')}
+                    style={({ pressed }) => [
+                      styles.callVendorBtn,
+                      { borderColor: palette.border, opacity: pressed ? 0.7 : 1 },
+                    ]}
+                  >
+                    <Text style={[styles.callVendorText, { color: palette.primary }]}>
+                      {t(lang, 'callVendor')}
+                    </Text>
+                  </Pressable>
+                </View>
               ) : null}
             </>
           ) : (
@@ -244,6 +264,14 @@ export default function OrderDetailScreen() {
             </Text>
           )}
         </Section>
+
+        <Button
+          variant="secondary"
+          title={t(lang, 'reportOrderIssue')}
+          onPress={() =>
+            router.push({ pathname: '/report-problem', params: { orderId: order._id } })
+          }
+        />
 
         <Button
           variant="secondary"
@@ -486,6 +514,22 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 13,
+  },
+  vendorPhoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  callVendorBtn: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  callVendorText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   paymentRow: {
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import orderModel, { ADDITIONAL_CHARGES, ORDER_STATUSES } from "../models/orderM
 import itemModel from "../models/itemModel.js";
 import vendorModel from "../models/vendorModel.js";
 import commissionConfigModel from "../models/commissionConfigModel.js";
+import logger from "../utils/logger.js";
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
@@ -134,7 +135,7 @@ const placeOrder = async (req, res) => {
       data: order,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to place order");
     res.status(500).json({
       success: false,
       message: "Failed to place order",
@@ -145,17 +146,32 @@ const placeOrder = async (req, res) => {
 // ADMIN — list orders (optionally filtered to one user via ?userId=)
 const listOrders = async (req, res) => {
   try {
+    const { userId, page = 1, limit = 20 } = req.query;
+
     const filter = {};
-    if (req.query.userId) filter.user = req.query.userId;
+    if (userId) filter.user = userId;
 
-    const orders = await orderModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .populate("user", "name email phone");
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
 
-    res.json({ success: true, data: orders });
+    const [orders, total] = await Promise.all([
+      orderModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .populate("user", "name email phone")
+        .skip(skip)
+        .limit(limitNum),
+      orderModel.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch orders");
     res.status(500).json({ success: false, message: "Failed to fetch orders" });
   }
 };
@@ -170,7 +186,7 @@ const myOrders = async (req, res) => {
 
     res.json({ success: true, data: orders });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch order history");
     res.status(500).json({ success: false, message: "Failed to fetch order history" });
   }
 };
@@ -247,7 +263,7 @@ const getOrderVendorLocation = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch vendor location");
     res.status(500).json({ success: false, message: "Failed to fetch vendor location" });
   }
 };
@@ -280,7 +296,7 @@ const updateOrderStatus = async (req, res) => {
       data: updated,
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update order");
     res.status(500).json({ success: false, message: "Failed to update order" });
   }
 };
@@ -288,16 +304,30 @@ const updateOrderStatus = async (req, res) => {
 // ADMIN — list orders filtered by vendor (for vendor detail view)
 const listOrdersByVendor = async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.query;
     const filter = { vendor: req.params.vendorId };
 
-    const orders = await orderModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .populate("user", "name email phone");
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
 
-    res.json({ success: true, data: orders });
+    const [orders, total] = await Promise.all([
+      orderModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .populate("user", "name email phone")
+        .skip(skip)
+        .limit(limitNum),
+      orderModel.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch vendor orders");
     res.status(500).json({ success: false, message: "Failed to fetch vendor orders" });
   }
 };

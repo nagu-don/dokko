@@ -6,6 +6,8 @@ import axios from "axios";
 import { authAdmin } from "../middleware/authMiddleware.js";
 import { assignVendor } from "../services/priorityService.js";
 import { DELIVERY_MAX_KM, STAGE_RADIUS_KM } from "../config/priorityConfig.js";
+import { encryptField, decryptField, maskAccountNumber } from "../utils/fieldEncryption.js";
+import logger from "../utils/logger.js";
 
 const { register, login } = buildAuthController(vendorModel);
 const { googleAuth } = buildGoogleAuthController(vendorModel);
@@ -34,12 +36,12 @@ export const vendorProfile = async (req, res) => {
         payoutAccountHolder: v.payoutAccountHolder || null,
         payoutBankName: v.payoutBankName || null,
         payoutAccountNumber: v.payoutAccountNumber
-          ? "XXXXXXXX" + v.payoutAccountNumber.slice(-4)
+          ? maskAccountNumber(decryptField(v.payoutAccountNumber))
           : null,
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load profile");
     res.status(500).json({ success: false, message: "Failed to load profile" });
   }
 };
@@ -67,7 +69,7 @@ export const updateVendorLocation = async (req, res) => {
       data: { lat, lng },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update location");
     res.status(500).json({ success: false, message: "Failed to update location" });
   }
 };
@@ -148,7 +150,7 @@ export const updateVendorLiveLocation = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update live location");
     res.status(500).json({ success: false, message: "Failed to update live location" });
   }
 };
@@ -226,7 +228,7 @@ export const getVendorRoute = async (req, res) => {
       message: "Routing is currently unavailable",
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch route");
     res.status(500).json({ success: false, message: "Failed to fetch route" });
   }
 };
@@ -244,12 +246,12 @@ export const getPayoutInfo = async (req, res) => {
         payoutAccountHolder: v.payoutAccountHolder || null,
         payoutBankName: v.payoutBankName || null,
         payoutAccountNumber: v.payoutAccountNumber
-          ? "XXXXXXXX" + v.payoutAccountNumber.slice(-4)
+          ? maskAccountNumber(decryptField(v.payoutAccountNumber))
           : null,
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load payout info");
     res.status(500).json({ success: false, message: "Failed to load payout info" });
   }
 };
@@ -292,7 +294,7 @@ export const updatePayoutInfo = async (req, res) => {
     v.payoutMethod = payoutMethod;
     v.payoutAccountHolder = payoutAccountHolder.trim();
     v.payoutBankName = payoutBankName.trim();
-    v.payoutAccountNumber = payoutAccountNumber.trim();
+    v.payoutAccountNumber = encryptField(payoutAccountNumber.trim());
 
     await v.save();
 
@@ -304,12 +306,12 @@ export const updatePayoutInfo = async (req, res) => {
         payoutAccountHolder: v.payoutAccountHolder,
         payoutBankName: v.payoutBankName,
         payoutAccountNumber: v.payoutAccountNumber
-          ? "XXXXXXXX" + v.payoutAccountNumber.slice(-4)
+          ? maskAccountNumber(decryptField(v.payoutAccountNumber))
           : null,
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to update payout info");
     res.status(500).json({ success: false, message: "Failed to update payout info" });
   }
 };
@@ -515,7 +517,7 @@ export const listNewRequests = async (req, res) => {
       data: enriched.map(({ order, extra }) => presentOrder(order, extra)),
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load new requests");
     res.status(500).json({ success: false, message: "Failed to load new requests" });
   }
 };
@@ -534,7 +536,7 @@ export const listAcceptedRequests = async (req, res) => {
 
     res.json({ success: true, data: orders.map(presentOrder) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load accepted requests");
     res.status(500).json({ success: false, message: "Failed to load accepted requests" });
   }
 };
@@ -649,7 +651,7 @@ export const acceptRequest = async (req, res) => {
       data: presentOrder(updated),
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to accept request");
     res.status(500).json({ success: false, message: "Failed to accept request" });
   }
 };
@@ -716,7 +718,7 @@ export const completeRequest = async (req, res) => {
 
     res.json({ success: true, message: "Order completed", data: presentOrder(updated) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to complete order");
     res.status(500).json({ success: false, message: "Failed to complete order" });
   }
 };
@@ -771,7 +773,7 @@ export const itemsSummary = async (req, res) => {
 
     res.json({ success: true, data, grandTotal });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to build summary");
     res.status(500).json({ success: false, message: "Failed to build summary" });
   }
 };
@@ -779,9 +781,16 @@ export const itemsSummary = async (req, res) => {
 // ---- ADMIN — list all vendors with full details ----
 export const listVendors = async (req, res) => {
   try {
-    const vendors = await vendorModel
-      .find({}, { password: 0 })
-      .sort({ createdAt: -1 });
+    const { page = 1, limit = 20 } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [vendors, total] = await Promise.all([
+      vendorModel.find({}, { password: 0 }).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      vendorModel.countDocuments(),
+    ]);
 
     const data = vendors.map((v) => ({
       id: v._id,
@@ -796,9 +805,13 @@ export const listVendors = async (req, res) => {
       updatedAt: v.updatedAt,
     }));
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to fetch vendors");
     res.status(500).json({ success: false, message: "Failed to fetch vendors" });
   }
 };
@@ -816,7 +829,7 @@ export const listCompletedRequests = async (req, res) => {
 
     res.json({ success: true, data: orders.map(presentOrder) });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to load completed orders");
     res.status(500).json({ success: false, message: "Failed to load completed orders" });
   }
 };
@@ -842,7 +855,7 @@ export const hideItems = async (req, res) => {
 
     res.json({ success: true, message: "Items hidden successfully" });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to hide items");
     res.status(500).json({ success: false, message: "Failed to hide items" });
   }
 };
@@ -869,7 +882,7 @@ export const unhideItems = async (req, res) => {
 
     res.json({ success: true, message: "Items restored successfully" });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Failed to restore items");
     res.status(500).json({ success: false, message: "Failed to restore items" });
   }
 };

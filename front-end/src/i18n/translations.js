@@ -41,6 +41,11 @@ export const translations = {
     logIn: "Log In",
     logOut: "Log Out",
 
+    // footer
+    footerTagline: "Fresh groceries, delivered across Kathmandu.",
+    footerVendorPrompt: "Are you a vendor?",
+    footerVendorLink: "Sign in here",
+
     // explore / home
     sortBy: "Sort by",
     sortAz: "Alphabetical (A–Z)",
@@ -172,6 +177,11 @@ export const translations = {
     optionsMany: "विकल्पहरू",
     logIn: "लगइन",
     logOut: "लगआउट",
+
+    // footer
+    footerTagline: "काठमाडौंभरि ताजा किराना, घरघर डेलिभरी।",
+    footerVendorPrompt: "के तपाईं विक्रेता हुनुहुन्छ?",
+    footerVendorLink: "यहाँ साइन इन गर्नुहोस्",
 
     // explore / home
     sortBy: "क्रममा मिलाउनुहोस्",

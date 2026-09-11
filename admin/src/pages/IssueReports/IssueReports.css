@@ -1,0 +1,381 @@
+.issue-reports-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.issue-reports-header {
+  margin-bottom: 24px;
+}
+
+.issue-reports-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 8px 0;
+}
+
+.issue-reports-subtitle {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ---- summary cards (same markup/classes as CashTransactions) ---- */
+.cash-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cash-summary-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cash-summary-card.issue-card-open {
+  border-left: 4px solid #faad14;
+}
+
+.cash-summary-card.issue-card-acknowledged {
+  border-left: 4px solid #1971c2;
+}
+
+.cash-summary-card.issue-card-resolved {
+  border-left: 4px solid #52c41a;
+}
+
+.cash-summary-card.issue-card-ignored {
+  border-left: 4px solid #adb5bd;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+/* ---- filters ---- */
+.issue-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.issue-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #868e96;
+}
+
+.issue-filter-select {
+  min-width: 170px;
+  padding: 10px 14px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 10px;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #495057;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.issue-filter-select:hover,
+.issue-filter-select:focus {
+  border-color: rgb(249, 96, 4);
+}
+
+/* ---- table ---- */
+.issue-reports-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.issue-reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: #fff;
+}
+
+.issue-reports-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #868e96;
+  padding: 12px;
+  border-bottom: 1.5px solid #f1f3f5;
+  white-space: nowrap;
+}
+
+.issue-reports-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  color: #343a40;
+  vertical-align: top;
+}
+
+.issue-reports-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.issue-date {
+  font-size: 0.78rem;
+  color: #868e96;
+  white-space: nowrap;
+}
+
+.issue-message {
+  max-width: 320px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.issue-expand-btn {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #1971c2;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.issue-expand-btn:hover {
+  text-decoration: underline;
+}
+
+.issue-reporter {
+  max-width: 200px;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.reporter-name {
+  display: block;
+  font-weight: 600;
+  color: #212529;
+}
+
+.reporter-email {
+  display: block;
+  font-size: 0.75rem;
+  color: #868e96;
+}
+
+/* ---- severity badges ---- */
+.severity-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.severity-low      { background: #f1f3f5; color: #868e96; }
+.severity-medium   { background: #e7f5ff; color: #1971c2; }
+.severity-high     { background: #fff4e6; color: #e8590c; }
+.severity-critical { background: #fff5f5; color: #e03131; }
+
+/* ---- status badges ---- */
+.issue-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.issue-status-badge.status-open          { background: #fff4e6; color: #e8590c; }
+.issue-status-badge.status-acknowledged  { background: #e7f5ff; color: #1971c2; }
+.issue-status-badge.status-resolved      { background: #ebfbee; color: #2b8a3e; }
+.issue-status-badge.status-ignored       { background: #f1f3f5; color: #868e96; }
+
+/* ---- per-row status action ---- */
+.issue-status-select {
+  padding: 6px 10px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #495057;
+  background: #fff;
+  cursor: pointer;
+}
+
+.issue-status-select:hover,
+.issue-status-select:focus {
+  border-color: rgb(249, 96, 4);
+}
+
+.issue-status-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.issue-reports-loading,
+.issue-reports-empty {
+  text-align: center;
+  color: #868e96;
+  padding: 40px 0;
+}
+
+/* ---- status-change modal (note shown when resolving/ignoring) ---- */
+.issue-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.issue-modal {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 460px;
+}
+
+.issue-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.issue-modal-header h2 {
+  font-size: 1.05rem;
+  color: #212529;
+  margin: 0;
+}
+
+.issue-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: #868e96;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.issue-modal-close:hover {
+  color: #e03131;
+}
+
+.issue-modal-body {
+  padding: 18px 22px;
+}
+
+.issue-modal-status {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.issue-note-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.issue-note-textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.2s ease;
+}
+
+.issue-note-textarea:focus {
+  border-color: rgb(249, 96, 4);
+}
+
+.issue-modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid #f1f3f5;
+  justify-content: flex-end;
+}
+
+.issue-modal-actions button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.issue-modal-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.issue-modal-cancel {
+  background: #f1f3f5;
+  color: #495057;
+}
+
+.issue-modal-cancel:hover {
+  background: #dee2e6;
+}
+
+.issue-modal-confirm {
+  background: rgb(249, 96, 4);
+  color: #fff;
+}
+
+.issue-modal-confirm:hover {
+  background: rgb(231, 87, 2);
+}

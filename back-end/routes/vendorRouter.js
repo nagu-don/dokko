@@ -22,13 +22,13 @@ import {
 import { initiatePayment, getPaymentStatus, triggerVerification, recordCashPayment, cancelPayment, revokeCashPayment, completeMockPayment } from "../controllers/paymentController.js";
 import { listVendorNotices } from "../controllers/noticeController.js";
 import { authVendor, authAdmin } from "../middleware/authMiddleware.js";
-import { vendorLoginLimiter, registerLimiter } from "../middleware/rateLimiter.js";
+import { vendorLoginLimiter, registerLimiter, googleAuthLimiter } from "../middleware/rateLimiter.js";
 
 const vendorRouter = express.Router();
 
 vendorRouter.post("/register", registerLimiter, registerVendor);
 vendorRouter.post("/login", vendorLoginLimiter, loginVendor);
-vendorRouter.post("/google", googleAuthVendor);
+vendorRouter.post("/google", googleAuthLimiter, googleAuthVendor);
 
 vendorRouter.get("/", authAdmin, listVendors);
 

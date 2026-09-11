@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import { isValidEmail, isStrongPassword } from "../utils/validators.js";
+import logger from "../utils/logger.js";
 
 // normalizes a phone input to bare digits, e.g. "9841-00-0000" -> "9841000000"
 const normalizePhone = (phone) => String(phone ?? "").replace(/\D/g, "");
@@ -18,6 +20,13 @@ const buildAuthController = (Model) => {
         });
       }
 
+      if (!isValidEmail(email)) {
+        return res.status(400).json({
+          success: false,
+          message: "Please enter a valid email address",
+        });
+      }
+
       if (!/^\d{10}$/.test(phone)) {
         return res.status(400).json({
           success: false,
@@ -25,16 +34,16 @@ const buildAuthController = (Model) => {
         });
       }
 
-      if (password.length < 6) {
+      if (!isStrongPassword(password)) {
         return res.status(400).json({
           success: false,
-          message: "Password must be at least 6 characters",
+          message: "Password must be at least 8 characters and include a mix of letters, numbers, or symbols",
         });
       }
 
       const existingEmail = await Model.findOne({ email });
       if (existingEmail) {
-        return res.json({
+        return res.status(409).json({
           success: false,
           message: "An account with this email already exists",
         });
@@ -42,7 +51,7 @@ const buildAuthController = (Model) => {
 
       const existingPhone = await Model.findOne({ phone });
       if (existingPhone) {
-        return res.json({
+        return res.status(409).json({
           success: false,
           message: "An account with this phone number already exists",
         });
@@ -84,13 +93,13 @@ const buildAuthController = (Model) => {
         });
       }
       if (error.code === 11000) {
-        return res.json({
+        return res.status(409).json({
           success: false,
           message: "An account with this email or phone already exists",
         });
       }
 
-      console.error(error);
+      logger.error({ err: error }, "Failed to create account");
       res.status(500).json({
         success: false,
         message: "Failed to create account",
@@ -120,7 +129,7 @@ const buildAuthController = (Model) => {
 
       const account = await Model.findOne(query);
       if (!account) {
-        return res.json({
+        return res.status(401).json({
           success: false,
           message: "Invalid email/phone or password",
         });
@@ -128,7 +137,7 @@ const buildAuthController = (Model) => {
 
       const match = await bcrypt.compare(password, account.password);
       if (!match) {
-        return res.json({
+        return res.status(401).json({
           success: false,
           message: "Invalid email/phone or password",
         });
@@ -152,7 +161,7 @@ const buildAuthController = (Model) => {
         },
       });
     } catch (error) {
-      console.error(error);
+      logger.error({ err: error }, "Failed to log in");
       res.status(500).json({
         success: false,
         message: "Failed to log in",
